@@ -1,0 +1,76 @@
+# ── Dependencies ─────────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ── Next.js ───────────────────────────────────────────────────────────────────
+.next/
+out/
+build/
+.vercel
+
+# ── Hardhat ───────────────────────────────────────────────────────────────────
+artifacts/
+cache/
+typechain-types/
+tsconfig.tsbuildinfo
+
+# ── Environment — NEVER commit secrets ───────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.staging
+*.pem
+
+# ── Private keys & wallets — CRITICAL ────────────────────────────────────────
+*.key
+*.keystore
+*.secret
+keystore/
+wallet.json
+mnemonic.txt
+deployer.json
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ── Editor ────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.project
+.classpath
+.settings/
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+coverage/
+coverage.json
+.nyc_output/
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+*.tgz
+*.zip
+dist/
+tmp/
+temp/
