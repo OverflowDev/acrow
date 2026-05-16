@@ -89,9 +89,9 @@ export const STATUS_LABEL: Record<ListingStatus, string> = {
 }
 
 export const STATUS_COLOR: Record<ListingStatus, string> = {
-  [ListingStatus.OPEN]:      'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
-  [ListingStatus.LOCKED]:    'text-blue-400 bg-blue-500/10 border-blue-500/30',
-  [ListingStatus.COMPLETED]: 'text-slate-400 bg-slate-500/10 border-slate-500/30',
+  [ListingStatus.OPEN]:      'text-[#4F7CF5] bg-[#4F7CF5]/10 border-[#4F7CF5]/30',
+  [ListingStatus.LOCKED]:    'text-[#7BA4F8] bg-[#4F7CF5]/08 border-[#4F7CF5]/20',
+  [ListingStatus.COMPLETED]: 'text-[#3A5A8B] bg-[#0E1B2E] border-[#142040]',
   [ListingStatus.DISPUTED]:  'text-red-400 bg-red-500/10 border-red-500/30',
-  [ListingStatus.CANCELLED]: 'text-slate-600 bg-slate-700/10 border-slate-700/30',
+  [ListingStatus.CANCELLED]: 'text-[#2A4570] bg-[#07101E] border-[#0E1B2E]',
 }

@@ -31,32 +31,50 @@ html, body {
 
 /* RainbowKit overrides */
 [data-rk] {
-  --rk-colors-accentColor:            #10B981 !important;
+  --rk-colors-accentColor:            #4F7CF5 !important;
   --rk-colors-accentColorForeground:  #fff    !important;
-  --rk-colors-modalBackground:        #1E293B !important;
-  --rk-colors-modalBorder:            #334155 !important;
-  --rk-colors-modalText:              #E2E8F0 !important;
-  --rk-colors-menuItemBackground:     #0F172A !important;
+  --rk-colors-modalBackground:        #0A1628 !important;
+  --rk-colors-modalBorder:            #142040 !important;
+  --rk-colors-modalText:              #E4EAF8 !important;
+  --rk-colors-menuItemBackground:     #07101E !important;
 }
 
 @layer utilities {
   .card {
-    @apply bg-slate-800 border border-slate-700 rounded-xl;
+    @apply border;
+    background: #0A1628;
+    border-color: #142040;
   }
   .btn-primary {
-    @apply bg-emerald-500 hover:bg-emerald-400 text-white font-semibold rounded-lg px-4 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+    @apply text-white font-semibold px-4 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+    background: #4F7CF5;
   }
+  .btn-primary:hover:not(:disabled) { background: #6B93F7; }
   .btn-danger {
-    @apply bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 font-semibold rounded-lg px-4 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+    @apply border text-red-400 font-semibold px-4 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+    background: rgba(239,68,68,0.1);
+    border-color: rgba(239,68,68,0.3);
   }
+  .btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.2); }
   .btn-ghost {
-    @apply bg-slate-700/50 hover:bg-slate-700 border border-slate-600 text-slate-300 font-semibold rounded-lg px-4 py-2 transition-colors;
+    @apply border font-semibold px-4 py-2 transition-colors;
+    background: rgba(10,22,40,0.5);
+    border-color: #142040;
+    color: #7BA4F8;
   }
+  .btn-ghost:hover { background: #0A1628; border-color: #1B2E4A; }
   .input {
-    @apply bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all w-full;
+    @apply px-3 py-2 text-sm focus:outline-none transition-all w-full;
+    background: #07101E;
+    border: 1px solid #142040;
+    color: #E4EAF8;
   }
+  .input::placeholder { color: #2A4570; }
+  .input:focus { border-color: #4F7CF5; box-shadow: 0 0 0 2px rgba(79,124,245,0.15); }
   .label {
-    @apply text-sm font-medium text-slate-400 mb-1 block;
+    @apply text-xs font-medium mb-1 block;
+    color: #3A5A8B;
+    letter-spacing: 0.08em;
   }
 }
 

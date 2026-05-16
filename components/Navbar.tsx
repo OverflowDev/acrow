@@ -13,10 +13,10 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 h-16 bg-slate-900/95 backdrop-blur border-b border-slate-800 flex items-center px-4 gap-4">
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2 shrink-0">
-        <div className="w-8 h-8 bg-emerald-500/20 border border-emerald-500/40 rounded-lg flex items-center justify-center font-bold text-emerald-400 text-xs" style={{ fontFamily: 'var(--font-bebas, sans-serif)', letterSpacing: '0.05em' }}>
-          AR
+        <div className="w-8 h-8 flex items-center justify-center text-lg" style={{ background: 'rgba(79,124,245,0.12)', border: '1px solid rgba(79,124,245,0.3)', color: '#4F7CF5', fontFamily: 'var(--font-bebas, sans-serif)' }}>
+          ⬡
         </div>
-        <span className="font-bold text-white text-sm hidden sm:block tracking-wider" style={{ fontFamily: 'var(--font-bebas, sans-serif)', letterSpacing: '0.12em' }}>ARCROW</span>
+        <span className="hidden sm:block text-sm" style={{ fontFamily: 'var(--font-bebas, sans-serif)', letterSpacing: '0.12em', color: '#E4EAF8' }}>ARCROW</span>
       </Link>
 
       {/* Stats */}
