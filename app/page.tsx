@@ -93,7 +93,7 @@ export default function LandingPage() {
     <>
       <div ref={dot} style={{ position:'fixed', width:8, height:8, background:ARC, borderRadius:'50%', pointerEvents:'none', zIndex:9999, transform:'translate(-50%,-50%)', transition:'left .05s linear,top .05s linear' }} />
 
-      <div style={{ background:CREAM, color:TXT, fontFamily:SP, overflowX:'hidden', cursor:'none' }}>
+      <div style={{ background:CREAM, color:TXT, fontFamily:SP, overflowX:'clip', cursor:'none' }}>
 
         {/* ══════════════════════════════════════ NAV */}
         <nav style={{ height:64, display:'flex', alignItems:'center', padding:'0 3rem', gap:'2rem', borderBottom:`1px solid ${EL}`, background:CREAM, position:'sticky', top:0, zIndex:100, backdropFilter:'blur(8px)' }}>
@@ -189,23 +189,7 @@ export default function LandingPage() {
               <p style={{ fontSize:'1rem', color:TXM, maxWidth:380, lineHeight:1.75, paddingBottom:'0.25rem' }}>Four atomic steps. Zero trust required. Every action recorded permanently on-chain.</p>
             </div>
 
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', border:`1px solid ${EL}` }}>
-              {STEPS.map((st,i) => (
-                <div key={i} style={{ padding:'3.5rem', borderRight:i%2===0?`1px solid ${EL}`:'none', borderBottom:i<2?`1px solid ${EL}`:'none', position:'relative', overflow:'hidden', transition:'background .2s' }}
-                  onMouseEnter={e => s(e.currentTarget,{background:'rgba(46,87,255,0.03)'})}
-                  onMouseLeave={e => s(e.currentTarget,{background:'transparent'})}
-                >
-                  <div aria-hidden style={{ position:'absolute', right:'1.5rem', top:'1rem', fontFamily:BB, fontSize:'6rem', color:'rgba(11,9,22,0.04)', lineHeight:1, userSelect:'none' }}>{st.n}</div>
-                  <div style={{ fontFamily:JB, fontSize:9, letterSpacing:'0.26em', color:ARC, marginBottom:'2rem' }}>{st.n}</div>
-                  <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', marginBottom:'1rem' }}>
-                    <div style={{ width:34, height:34, border:`1px solid ${EL}`, display:'flex', alignItems:'center', justifyContent:'center', color:TXM }}><st.Icon size={15} /></div>
-                    <span style={{ fontSize:'0.75rem', color:TXM }}>{st.sub}</span>
-                  </div>
-                  <h3 style={{ fontFamily:BB, fontSize:'2.75rem', color:TXT, margin:'0 0 1rem', lineHeight:1, letterSpacing:'0.02em' }}>{st.title}</h3>
-                  <p style={{ fontSize:'0.9rem', lineHeight:1.75, color:TXM, maxWidth:380 }}>{st.desc}</p>
-                </div>
-              ))}
-            </div>
+            <StepsCarousel />
           </div>
         </section>
 
@@ -236,33 +220,8 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* ══════════════════════════════════════ FEATURES */}
-        <div id="features" style={{ background:CREAM, padding:'8rem 3rem', borderTop:`1px solid ${EL}` }}>
-          <div style={{ maxWidth:1400, margin:'0 auto' }}>
-            <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:'5rem', gap:'2rem', flexWrap:'wrap' }}>
-              <div>
-                <Eyebrow dark>FEATURES</Eyebrow>
-                <h2 style={{ fontFamily:BB, fontSize:'clamp(3rem,6vw,6rem)', color:TXT, lineHeight:0.93, margin:0, letterSpacing:'0.01em' }}>BUILT<br />DIFFERENT</h2>
-              </div>
-              <p style={{ fontSize:'1rem', color:TXM, maxWidth:380, lineHeight:1.75, paddingBottom:'0.25rem' }}>Every edge case handled. Every incentive aligned. Zero trust assumptions built into the protocol.</p>
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', border:`1px solid ${EL}` }}>
-              {FEATS.map((f,i) => (
-                <div key={i} style={{ padding:'2.5rem', borderRight:(i+1)%3!==0?`1px solid ${EL}`:'none', borderBottom:i<3?`1px solid ${EL}`:'none', transition:'background .2s', position:'relative', overflow:'hidden' }}
-                  onMouseEnter={e => s(e.currentTarget,{background:'rgba(46,87,255,0.03)'})}
-                  onMouseLeave={e => s(e.currentTarget,{background:'transparent'})}
-                >
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.5rem' }}>
-                    <div style={{ width:40, height:40, border:`1px solid ${EL}`, background:'rgba(46,87,255,0.04)', display:'flex', alignItems:'center', justifyContent:'center', color:ARC }}><f.Icon size={18} /></div>
-                    <span style={{ fontFamily:JB, fontSize:9, letterSpacing:'0.18em', color:'rgba(11,9,22,0.12)' }}>0{i+1}</span>
-                  </div>
-                  <h3 style={{ fontFamily:BB, fontSize:'1.625rem', color:TXT, margin:'0 0 0.75rem', lineHeight:1, letterSpacing:'0.02em' }}>{f.title}</h3>
-                  <p style={{ fontSize:'0.875rem', lineHeight:1.75, color:TXM }}>{f.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        {/* ══════════════════════════════════════ FEATURES (scroll-pinned) */}
+        <FeaturesScrollSection />
 
         {/* ══════════════════════════════════════ STATS */}
         <div id="stats" ref={statsRef} style={{ background:DARK, padding:'8rem 3rem', borderTop:`1px solid ${ED}` }}>
@@ -325,8 +284,258 @@ export default function LandingPage() {
   )
 }
 
+// ─── Features — scroll-pinned sticky section ──────────────────────────────────
+function FeaturesScrollSection() {
+  const [idx, setIdx]     = useState(0)
+  const outer             = useRef<HTMLDivElement>(null)
+  const TOTAL             = FEATS.length
+  // outer height = (TOTAL + 1) × 100vh  →  sticky pin range = TOTAL × 100vh
+  // each feature occupies exactly 100vh of scroll range
+
+  useEffect(() => {
+    const onScroll = () => {
+      if (!outer.current) return
+      const { top, height } = outer.current.getBoundingClientRect()
+      const range = height - window.innerHeight
+      if (range <= 0) return
+      const prog = Math.max(0, Math.min(1, -top / range))
+      setIdx(Math.min(TOTAL - 1, Math.floor(prog * TOTAL)))
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [TOTAL])
+
+  const feat = FEATS[idx]
+
+  return (
+    <div
+      id="features"
+      ref={outer}
+      style={{ height:`${(TOTAL + 1) * 100}vh`, position:'relative', background:CREAM }}
+    >
+      {/* Sticky viewport panel */}
+      <div style={{
+        position:'sticky', top:0, height:'100vh', overflow:'hidden',
+        display:'grid', gridTemplateColumns:'1fr 1fr',
+        borderTop:`1px solid ${EL}`,
+      }}>
+
+        {/* ── Left: heading + scrollable feature list + progress ── */}
+        <div style={{
+          borderRight:`1px solid ${EL}`, padding:'4.5rem 4rem',
+          display:'flex', flexDirection:'column', justifyContent:'space-between', overflow:'hidden',
+        }}>
+          <div>
+            <Eyebrow dark>FEATURES</Eyebrow>
+            <h2 style={{ fontFamily:BB, fontSize:'clamp(2.5rem,4.5vw,5rem)', color:TXT, lineHeight:0.93, margin:'0 0 2.5rem', letterSpacing:'0.01em' }}>
+              BUILT<br />DIFFERENT
+            </h2>
+          </div>
+
+          {/* Feature list — each item is always visible, active one highlighted */}
+          <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center' }}>
+            {FEATS.map((f, i) => (
+              <div key={i} style={{
+                display:'flex', alignItems:'center', gap:'1rem',
+                padding:'0.875rem 0',
+                borderBottom:i < FEATS.length - 1 ? `1px solid ${EL}` : 'none',
+                opacity:i === idx ? 1 : 0.38,
+                transition:'opacity .4s ease',
+              }}>
+                <span style={{ fontFamily:JB, fontSize:9, letterSpacing:'0.22em', color:i===idx?ARC:TXM, minWidth:22, transition:'color .3s' }}>
+                  {`0${i+1}`}
+                </span>
+                <div style={{
+                  width:30, height:30, flexShrink:0,
+                  border:`1px solid ${i===idx?ARC:EL}`,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  color:i===idx?ARC:TXM,
+                  transition:'border-color .3s, color .3s',
+                }}>
+                  <f.Icon size={13} />
+                </div>
+                <span style={{
+                  fontSize:'0.875rem',
+                  fontWeight:i===idx ? 600 : 400,
+                  color:i===idx ? TXT : TXM,
+                  letterSpacing:'0.01em',
+                  transition:'color .3s',
+                }}>
+                  {f.title}
+                </span>
+                {i === idx && (
+                  <span style={{ marginLeft:'auto', width:6, height:6, borderRadius:'50%', background:ARC, boxShadow:`0 0 8px ${ARC}`, animation:'pulse-led 1.8s ease-in-out infinite', flexShrink:0 }} />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Progress bar + counter */}
+          <div style={{ display:'flex', alignItems:'center', gap:'1rem', paddingTop:'2rem' }}>
+            <div style={{ flex:1, height:1, background:EL, position:'relative' }}>
+              <div style={{ position:'absolute', left:0, top:0, height:'100%', background:ARC, transition:'width .5s ease', width:`${((idx+1)/TOTAL)*100}%` }} />
+            </div>
+            <span style={{ fontFamily:JB, fontSize:9.5, letterSpacing:'0.18em', color:TXM, flexShrink:0 }}>{`0${idx+1} / 0${TOTAL}`}</span>
+          </div>
+        </div>
+
+        {/* ── Right: active feature content ── */}
+        <div style={{ padding:'4.5rem 4rem', display:'flex', flexDirection:'column', justifyContent:'center', position:'relative', overflow:'hidden' }}>
+          {/* Giant ghost number watermark */}
+          <div aria-hidden style={{
+            position:'absolute', right:'-1.5rem', top:'50%', transform:'translateY(-50%)',
+            fontFamily:BB, fontSize:'clamp(14rem,22vw,24rem)',
+            color:'rgba(11,9,22,0.04)', lineHeight:1, userSelect:'none', pointerEvents:'none',
+            transition:'opacity .3s',
+          }}>
+            {`0${idx+1}`}
+          </div>
+
+          {/* key swap → triggers fade-up from globals.css on every feature change */}
+          <div key={idx} style={{ position:'relative', zIndex:1, animation:'fade-up .4s ease both' }}>
+            <div style={{
+              width:56, height:56,
+              border:`1px solid rgba(46,87,255,0.25)`,
+              background:'rgba(46,87,255,0.06)',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              color:ARC, marginBottom:'2.5rem',
+            }}>
+              <feat.Icon size={24} />
+            </div>
+
+            <h3 style={{
+              fontFamily:BB, fontSize:'clamp(2.5rem,4.5vw,5.5rem)',
+              color:TXT, margin:'0 0 1.75rem', lineHeight:0.93, letterSpacing:'0.01em',
+            }}>
+              {feat.title}
+            </h3>
+
+            <p style={{ fontSize:'1.0625rem', lineHeight:1.8, color:TXM, maxWidth:480 }}>
+              {feat.desc}
+            </p>
+
+            {/* Scroll hint */}
+            <div style={{ marginTop:'3rem', display:'flex', alignItems:'center', gap:'0.625rem' }}>
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
+                <div style={{ width:1, height:12, background:idx < TOTAL-1 ? ARC : EL, transition:'background .3s' }} />
+                <div style={{ width:6, height:6, border:`1px solid ${idx < TOTAL-1 ? ARC : EL}`, transform:'rotate(45deg)', transition:'border-color .3s' }} />
+              </div>
+              <span style={{ fontFamily:JB, fontSize:9, letterSpacing:'0.22em', color:TXM }}>
+                {idx < TOTAL - 1 ? 'SCROLL FOR NEXT' : 'KEEP SCROLLING'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  )
+}
+
+// ─── Steps Carousel ───────────────────────────────────────────────────────────
+function StepsCarousel() {
+  const [cur,    setCur]    = useState(0)
+  const [paused, setPaused] = useState(false)
+
+  // Auto-advance every 4.5 s; pause on manual interaction
+  useEffect(() => {
+    if (paused) return
+    const id = setInterval(() => setCur(c => (c + 1) % STEPS.length), 4500)
+    return () => clearInterval(id)
+  }, [paused])
+
+  const goTo = (n: number) => { setCur(n); setPaused(true) }
+  const prev = () => goTo((cur - 1 + STEPS.length) % STEPS.length)
+  const next = () => goTo((cur + 1) % STEPS.length)
+
+  const step = STEPS[cur]
+  const pct  = `${((cur + 1) / STEPS.length) * 100}%`
+
+  return (
+    <div style={{ border:`1px solid ${EL}`, overflow:'hidden', position:'relative' }}>
+
+      {/* Thin progress bar */}
+      <div style={{ height:2, background:EL, position:'relative' }}>
+        <div style={{ position:'absolute', left:0, top:0, height:'100%', background:ARC, width:pct, transition:'width .55s ease' }} />
+      </div>
+
+      {/* Slide — key swap triggers fade-up from globals.css */}
+      <div key={cur} style={{ display:'grid', gridTemplateColumns:'260px 1fr', minHeight:460 }}>
+
+        {/* Left panel: big ghost number + icon + sub-label */}
+        <div style={{ borderRight:`1px solid ${EL}`, padding:'3rem 2.5rem', display:'flex', flexDirection:'column', justifyContent:'space-between', background:'rgba(46,87,255,0.02)', animation:'fade-up .45s ease both' }}>
+          <div aria-hidden style={{ fontFamily:BB, fontSize:'11rem', color:'rgba(11,9,22,0.05)', lineHeight:0.8, userSelect:'none', marginLeft:'-0.25rem' }}>{step.n}</div>
+          <div>
+            <div style={{ width:44, height:44, border:`1px solid ${EL}`, display:'flex', alignItems:'center', justifyContent:'center', color:ARC, marginBottom:'0.875rem' }}>
+              <step.Icon size={20} />
+            </div>
+            <div style={{ fontFamily:JB, fontSize:9, letterSpacing:'0.22em', color:TXM, textTransform:'uppercase' }}>{step.sub}</div>
+          </div>
+        </div>
+
+        {/* Right panel: title + description + controls */}
+        <div style={{ padding:'3rem 3.5rem', display:'flex', flexDirection:'column', justifyContent:'space-between', animation:'fade-up .45s .06s ease both' }}>
+          <div>
+            <h3 style={{ fontFamily:BB, fontSize:'clamp(3rem,5.5vw,6rem)', color:TXT, lineHeight:0.93, margin:'0 0 2rem', letterSpacing:'0.01em' }}>
+              {step.title}
+            </h3>
+            <p style={{ fontSize:'1rem', lineHeight:1.8, color:TXM, maxWidth:560 }}>{step.desc}</p>
+          </div>
+
+          {/* Controls row */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:'3rem', flexWrap:'wrap', gap:'1rem' }}>
+
+            {/* Step pills */}
+            <div style={{ display:'flex', gap:'6px', alignItems:'center' }}>
+              {STEPS.map((_,i) => (
+                <button key={i} onClick={() => goTo(i)}
+                  style={{ height:4, width:i===cur?32:8, background:i===cur?ARC:EL, border:'none', cursor:'pointer', padding:0, transition:'width .35s,background .35s' }}
+                  onMouseEnter={e => { if(i!==cur) s(e.currentTarget,{background:'rgba(11,9,22,0.18)'}) }}
+                  onMouseLeave={e => { if(i!==cur) s(e.currentTarget,{background:EL}) }}
+                />
+              ))}
+            </div>
+
+            {/* Counter + arrows */}
+            <div style={{ display:'flex', alignItems:'center', gap:'0.625rem' }}>
+              <span style={{ fontFamily:JB, fontSize:10, letterSpacing:'0.2em', color:TXM, minWidth:48 }}>
+                {`0${cur+1} / 0${STEPS.length}`}
+              </span>
+              <button onClick={prev}
+                style={{ width:42, height:42, border:`1px solid ${EL}`, background:'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:JB, fontSize:14, color:TXM, transition:'all .2s' }}
+                onMouseEnter={e => s(e.currentTarget,{borderColor:'rgba(11,9,22,0.25)',color:TXT,background:'rgba(11,9,22,0.03)'})}
+                onMouseLeave={e => s(e.currentTarget,{borderColor:EL,color:TXM,background:'transparent'})}
+              >←</button>
+              <button onClick={next}
+                style={{ width:42, height:42, border:`1px solid ${ARC}`, background:ARC, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:JB, fontSize:14, color:'#fff', transition:'all .2s' }}
+                onMouseEnter={e => s(e.currentTarget,{background:'#4B6DFF',transform:'translateY(-1px)'})}
+                onMouseLeave={e => s(e.currentTarget,{background:ARC,transform:'translateY(0)'})}
+              >→</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Step labels strip at the bottom */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', borderTop:`1px solid ${EL}` }}>
+        {STEPS.map((st,i) => (
+          <button key={i} onClick={() => goTo(i)}
+            style={{ padding:'1rem', textAlign:'left', background:i===cur?'rgba(46,87,255,0.04)':'transparent', borderRight:i<3?`1px solid ${EL}`:'none', border:'none', cursor:'pointer', transition:'background .2s', borderBottom:'none', display:'flex', alignItems:'center', gap:'0.625rem' }}
+            onMouseEnter={e => { if(i!==cur) s(e.currentTarget,{background:'rgba(11,9,22,0.02)'}) }}
+            onMouseLeave={e => { if(i!==cur) s(e.currentTarget,{background:'transparent'}) }}
+          >
+            <span style={{ width:6, height:6, borderRadius:'50%', background:i===cur?ARC:EL, flexShrink:0, transition:'background .3s', boxShadow:i===cur?`0 0 6px ${ARC}`:'none' }} />
+            <span style={{ fontFamily:JB, fontSize:9, letterSpacing:'0.16em', color:i===cur?ARC:TXM, transition:'color .2s', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{st.title}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── Eyebrow label ────────────────────────────────────────────────────────────
-function Eyebrow({ children, dark }: { children: React.ReactNode; dark?: boolean }) {
+function Eyebrow({ children }: { children: React.ReactNode; dark?: boolean }) {
   return (
     <div style={{ fontFamily:JB, fontSize:9.5, letterSpacing:'0.28em', color:ARC, marginBottom:'1.25rem', display:'flex', alignItems:'center', gap:'0.75rem' }}>
       <span style={{ width:20, height:1, background:ARC, display:'inline-block' }} />
