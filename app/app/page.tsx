@@ -40,6 +40,7 @@ export default function MarketplacePage() {
   const [search, setSearch]             = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'locked'>('open')
   const [selectedId, setSelectedId]     = useState<bigint | null>(null)
+  const [showDetail, setShowDetail]     = useState(false)
   const [showCreate, setShowCreate]     = useState(false)
   const [metaMap, setMetaMap]           = useState<Record<string, ListingMeta>>({})
 
@@ -244,7 +245,7 @@ export default function MarketplacePage() {
                   key={l.id.toString()}
                   listing={l}
                   isSelected={l.id === selectedId}
-                  onSelect={() => setSelectedId(l.id)}
+                  onSelect={() => { setSelectedId(l.id); if (window.innerWidth < 768) setShowDetail(true) }}
                 />
               ))
             )}
@@ -252,7 +253,7 @@ export default function MarketplacePage() {
         </div>
 
         {/* ── Right panel */}
-        <div style={{ display:'none', flex:1, flexDirection:'column', overflow:'hidden', background:BG }} className="md:flex">
+        <div className="hidden md:flex" style={{ flex:1, flexDirection:'column', overflow:'hidden', background:BG }}>
           {selectedListing ? (
             <TransactionDetail listing={selectedListing} onRefresh={refresh} />
           ) : (
@@ -260,6 +261,23 @@ export default function MarketplacePage() {
           )}
         </div>
       </div>
+
+      {/* ── Mobile detail overlay */}
+      {showDetail && selectedListing && (
+        <div className="md:hidden" style={{ position:'fixed', inset:0, zIndex:50, background:BG, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'0.75rem 1rem', borderBottom:`1px solid rgba(255,255,255,0.07)`, flexShrink:0, background:'#08101E' }}>
+            <button
+              onClick={() => setShowDetail(false)}
+              style={{ background:'none', border:'none', cursor:'pointer', color:'#6B6B99', display:'flex', alignItems:'center', gap:6, fontFamily:'var(--font-jb,monospace)', fontSize:10, letterSpacing:'0.14em', padding:0 }}
+            >
+              ← BACK
+            </button>
+          </div>
+          <div style={{ flex:1, overflowY:'auto' }}>
+            <TransactionDetail listing={selectedListing} onRefresh={() => { refresh(); setShowDetail(false) }} />
+          </div>
+        </div>
+      )}
 
       {showCreate && (
         <CreateListingModal onClose={() => { setShowCreate(false); refresh() }} />
