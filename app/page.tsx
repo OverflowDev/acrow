@@ -121,7 +121,7 @@ export default function LandingPage() {
         }}>
           <Link href="/" style={{ display:'flex', alignItems:'center', gap:'0.5rem', textDecoration:'none', flexShrink:0 }}>
             <span style={{ fontSize:'1.25rem', color:ARC, fontFamily:BB }}>⬡</span>
-            <span style={{ fontFamily:BB, fontSize:'1.25rem', letterSpacing:'0.12em', color:TXL }}>ARCROW</span>
+            <span style={{ fontFamily:BB, fontSize:'1.25rem', letterSpacing:'0.12em', color:TXL }}>Scrow</span>
           </Link>
           {!mob && (
             <div style={{ display:'flex', gap:'2rem', margin:'0 auto' }}>
@@ -164,7 +164,7 @@ export default function LandingPage() {
           {/* Badge */}
           <span style={{ position:'relative', zIndex:1, display:'inline-flex', alignItems:'center', gap:'0.4rem', fontFamily:JB, fontSize:9, fontWeight:700, letterSpacing:'0.22em', color:ARC, border:`1px solid rgba(46,87,255,0.2)`, background:'rgba(46,87,255,0.06)', padding:'5px 12px', marginBottom: mob ? '1.5rem' : '2rem' }}>
             <span style={{ width:4, height:4, borderRadius:'50%', background:ARC, display:'inline-block', animation:'pulse-led 1.8s ease-in-out infinite' }} />
-            LIVE · ARC TESTNET · CHAIN 5042002
+            LIVE ON ARC NETWORK
           </span>
 
           {/* Headline */}
@@ -336,7 +336,7 @@ export default function LandingPage() {
 
         {/* ══════════════════════════════════════ FOOTER */}
         <footer style={{ background:DARK, padding: mob ? '2rem 1.25rem' : '2.5rem 3rem', borderTop:`1px solid ${ED}`, display:'flex', alignItems: mob ? 'flex-start' : 'center', justifyContent:'space-between', gap:'1.25rem', flexWrap:'wrap', flexDirection: mob ? 'column' : 'row' }}>
-          <div style={{ fontFamily:BB, fontSize:'1.125rem', letterSpacing:'0.14em', color:'rgba(255,255,255,0.18)' }}>ARCROW</div>
+          <div style={{ fontFamily:BB, fontSize:'1.125rem', letterSpacing:'0.14em', color:'rgba(255,255,255,0.18)' }}>Scrow</div>
           <div style={{ display:'flex', gap: mob ? '1.5rem' : '2rem', flexWrap:'wrap' }}>
             {[{l:'Docs',h:'#'},{l:'GitHub',h:'#'},{l:'Discord',h:'#'},{l:'ArcScan ↗',h:'https://testnet.arcscan.app'}].map((lk,i) => (
               <a key={i} href={lk.h} target={lk.h.startsWith('http')?'_blank':undefined} rel="noopener noreferrer"
@@ -344,7 +344,7 @@ export default function LandingPage() {
                 onMouseEnter={e => s(e.currentTarget,{color:TXL})} onMouseLeave={e => s(e.currentTarget,{color:TXL2})}>{lk.l}</a>
             ))}
           </div>
-          <div style={{ fontSize:'0.75rem', color:'rgba(255,255,255,0.1)', fontFamily:JB, letterSpacing:'0.06em' }}>© 2026 ARCROW Protocol · Arc Network</div>
+          <div style={{ fontSize:'0.75rem', color:'rgba(255,255,255,0.1)', fontFamily:JB, letterSpacing:'0.06em' }}>© 2026 Scrow Protocol · Arc Network</div>
         </footer>
 
       </div>
@@ -587,7 +587,7 @@ function Vault({ phase, phases, mob }: { phase: number; phases: readonly string[
       <div aria-hidden style={{ position:'absolute', top:0, left:0, right:0, height:1, background:'linear-gradient(90deg,transparent,rgba(46,87,255,0.6) 40%,rgba(46,87,255,0.6) 60%,transparent)', pointerEvents:'none' }} />
       <div style={{ display:'flex', alignItems:'center', gap:'0.35rem', padding:'0.75rem 1.25rem', borderBottom:`1px solid ${ED}`, flexShrink:0 }}>
         {['#FF5F57','#FFBD2E','#28C840'].map((c,i) => <span key={i} style={{ width:8, height:8, borderRadius:'50%', background:c, display:'inline-block', marginLeft:i>0?3:0 }} />)}
-        <span style={{ fontFamily:JB, fontSize:9, letterSpacing:'0.14em', color:'rgba(255,255,255,0.2)', marginLeft:'0.5rem', flex:1 }}>ARCROW VAULT · 0x4a2f…e391</span>
+        <span style={{ fontFamily:JB, fontSize:9, letterSpacing:'0.14em', color:'rgba(255,255,255,0.2)', marginLeft:'0.5rem', flex:1 }}>Scrow VAULT · 0x4a2f…e391</span>
         <div style={{ display:'flex', alignItems:'center', gap:'0.3rem', fontFamily:JB, fontSize:8, fontWeight:700, letterSpacing:'0.16em', color:ARC, border:'1px solid rgba(46,87,255,0.2)', padding:'2px 7px', background:'rgba(46,87,255,0.06)' }}>
           <span style={{ width:4, height:4, borderRadius:'50%', background:ARC, display:'inline-block', animation:'pulse-led 1.4s ease-in-out infinite' }} /> LIVE
         </div>
@@ -643,7 +643,7 @@ function VaultMobile({ phase, phases, bAmt, sAmt, state, lk }: {
         <div style={{ display:'flex', gap:3 }}>
           {['#FF5F57','#FFBD2E','#28C840'].map((c,i) => <span key={i} style={{ width:8, height:8, borderRadius:'50%', background:c, display:'inline-block' }} />)}
         </div>
-        <span style={{ fontFamily:JB, fontSize:8, letterSpacing:'0.1em', color:'rgba(255,255,255,0.18)', flex:1 }}>ARCROW VAULT</span>
+        <span style={{ fontFamily:JB, fontSize:8, letterSpacing:'0.1em', color:'rgba(255,255,255,0.18)', flex:1 }}>Scrow VAULT</span>
         <div style={{ display:'flex', alignItems:'center', gap:'0.25rem', fontFamily:JB, fontSize:7.5, fontWeight:700, letterSpacing:'0.14em', color:ARC, border:'1px solid rgba(46,87,255,0.2)', padding:'2px 7px', background:'rgba(46,87,255,0.06)' }}>
           <span style={{ width:4, height:4, borderRadius:'50%', background:ARC, display:'inline-block', animation:'pulse-led 1.4s ease-in-out infinite' }} /> LIVE
         </div>

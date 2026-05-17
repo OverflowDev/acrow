@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
- * @title  ARCROW EscrowMarket v2
+ * @title  Scrow EscrowMarket v2
  * @notice Trustless P2P escrow deployed on Arc Network.
  *
  *   Native token on Arc is USDC (18 decimals, EIP-1559).

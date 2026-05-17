@@ -45,7 +45,7 @@ export const chains: [Chain, ...Chain[]] = [
 ]
 
 export const wagmiConfig = getDefaultConfig({
-  appName:   'ARCROW',
+  appName:   'Scrow',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
   chains,
   ssr: true,

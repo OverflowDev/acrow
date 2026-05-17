@@ -1,5 +1,9 @@
 import { HardhatUserConfig } from 'hardhat/config'
 import '@nomicfoundation/hardhat-toolbox'
+import * as dotenv from 'dotenv'
+
+// Hardhat doesn't read .env.local (Next.js convention) — load it explicitly
+dotenv.config({ path: '.env.local' })
 
 const config: HardhatUserConfig = {
   solidity: {

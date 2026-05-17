@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { formatEther }                  from 'viem'
 import { useAccount }                   from 'wagmi'
-import { Plus, Search, RefreshCw, ArrowLeft } from 'lucide-react'
+import { Plus, Search, RefreshCw, ArrowLeft, TrendingUp, Lock, Circle } from 'lucide-react'
 import Link from 'next/link'
 
 import { Navbar }               from '@/components/Navbar'
@@ -18,6 +18,19 @@ import { useNativeSymbol }      from '@/hooks/useNativeSymbol'
 import type { Listing, ListingMeta } from '@/types'
 
 const PAGE_SIZE = 50n
+
+// Design tokens matching Scrow landing page
+const BG   = '#05080F'
+const BG2  = '#08101E'
+const BG3  = '#0C1525'
+const ARC  = '#2E57FF'
+const BD   = 'rgba(255,255,255,0.06)'
+const BD2  = 'rgba(46,87,255,0.2)'
+const TXL  = '#EDE9F8'
+const TXM  = '#6B6B99'
+const TXD  = 'rgba(255,255,255,0.18)'
+const JB   = 'var(--font-jb,monospace)'
+const BB   = 'var(--font-bebas,sans-serif)'
 
 export default function MarketplacePage() {
   const { address } = useAccount()
@@ -66,7 +79,6 @@ export default function MarketplacePage() {
 
   const displayed = useMemo(() => {
     let list = onChainListings
-
     if (tab === 'mine' && address) {
       list = list.filter(
         (l) =>
@@ -74,10 +86,8 @@ export default function MarketplacePage() {
           l.buyer.toLowerCase()  === address.toLowerCase(),
       )
     }
-
     if (statusFilter === 'open')   list = list.filter((l) => l.status === ListingStatus.OPEN)
     if (statusFilter === 'locked') list = list.filter((l) => l.status === ListingStatus.LOCKED)
-
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(
@@ -87,7 +97,6 @@ export default function MarketplacePage() {
           l.id.toString().includes(q),
       )
     }
-
     return list
   }, [onChainListings, tab, address, statusFilter, search])
 
@@ -100,130 +109,133 @@ export default function MarketplacePage() {
     .reduce((acc, l) => acc + l.price, 0n)
 
   return (
-    <div className="flex flex-col h-screen" style={{ background: '#060D1F' }}>
+    <div style={{ display:'flex', flexDirection:'column', height:'100vh', background:BG }}>
       <Navbar />
 
-      {/* ── Setup banner ───────────────────────────────────────────────────── */}
+      {/* ── Setup banner */}
       {!IS_CONTRACT_DEPLOYED && (
-        <div className="px-4 py-2.5 border-b text-xs flex items-center gap-2 shrink-0"
-          style={{ background: 'rgba(234,179,8,0.08)', borderColor: 'rgba(234,179,8,0.2)', color: '#ca8a04' }}
-        >
-          <span className="font-bold">SETUP REQUIRED</span>
-          <span style={{ color: '#713f12' }}>·</span>
-          Run{' '}
-          <code className="px-1.5 py-0.5 font-mono text-xs" style={{ background: '#07101E', color: '#7BA4F8', border: '1px solid #142040' }}>npm run node</code>
-          {' '}then{' '}
-          <code className="px-1.5 py-0.5 font-mono text-xs" style={{ background: '#07101E', color: '#7BA4F8', border: '1px solid #142040' }}>npm run deploy:local</code>
-          {' '}and set{' '}
-          <code className="px-1.5 py-0.5 font-mono text-xs" style={{ background: '#07101E', color: '#7BA4F8', border: '1px solid #142040' }}>NEXT_PUBLIC_CONTRACT_ADDRESS</code>
+        <div style={{ padding:'0.625rem 1.25rem', borderBottom:`1px solid rgba(234,179,8,0.18)`, background:'rgba(234,179,8,0.05)', display:'flex', alignItems:'center', gap:'0.625rem', flexShrink:0, flexWrap:'wrap' }}>
+          <span style={{ fontFamily:JB, fontSize:9.5, fontWeight:700, letterSpacing:'0.18em', color:'#ca8a04' }}>SETUP REQUIRED</span>
+          <span style={{ color:'rgba(234,179,8,0.3)' }}>·</span>
+          <span style={{ fontFamily:JB, fontSize:9.5, color:'rgba(234,179,8,0.5)', letterSpacing:'0.06em' }}>
+            Run <code style={{ color:'#7BA4F8', background:'rgba(123,164,248,0.08)', padding:'1px 6px', border:'1px solid rgba(123,164,248,0.15)' }}>npm run node</code>
+            {' '}then <code style={{ color:'#7BA4F8', background:'rgba(123,164,248,0.08)', padding:'1px 6px', border:'1px solid rgba(123,164,248,0.15)' }}>npm run deploy:local</code>
+            {' '}and set <code style={{ color:'#7BA4F8', background:'rgba(123,164,248,0.08)', padding:'1px 6px', border:'1px solid rgba(123,164,248,0.15)' }}>NEXT_PUBLIC_CONTRACT_ADDRESS</code>
+          </span>
         </div>
       )}
 
-      {/* ── Terminal stats bar ─────────────────────────────────────────────── */}
-      <div
-        className="flex items-center gap-0 px-4 py-0 border-b overflow-x-auto shrink-0"
-        style={{ background: '#04080F', borderColor: '#0E1B2E', height: '32px' }}
-      >
-        <span className="shrink-0 pr-4 mr-1 border-r" style={{ borderColor: '#0E1B2E', color: '#4F7CF5', fontFamily: 'var(--font-bebas, sans-serif)', fontSize: '1rem', letterSpacing: '0.08em' }}>
-          ⬡ ARCROW
-        </span>
-        <TermStat label="LISTINGS" value={count?.toString() ?? '—'} />
-        <div className="w-px h-3 mx-3 shrink-0" style={{ background: '#0E1B2E' }} />
-        <TermStat label="OPEN"   value={openCount.toString()}   active />
-        <div className="w-px h-3 mx-3 shrink-0" style={{ background: '#0E1B2E' }} />
-        <TermStat label="LOCKED" value={lockedCount.toString()} dim />
-        <div className="w-px h-3 mx-3 shrink-0" style={{ background: '#0E1B2E' }} />
-        <TermStat
-          label="SETTLED"
-          value={`${parseFloat(formatEther(totalVolume)).toFixed(3)} ${sym}`}
-        />
+      {/* ── Stats bar */}
+      <div style={{ display:'flex', alignItems:'center', padding:'0 1.25rem', borderBottom:`1px solid ${BD}`, background:BG, height:36, flexShrink:0, overflow:'hidden', gap:0 }}>
+        <StatChip label="TOTAL" value={count?.toString() ?? '—'} />
+        <Divider />
+        <StatChip label="OPEN" value={openCount.toString()} color={ARC} />
+        <Divider />
+        <StatChip label="LOCKED" value={lockedCount.toString()} color={TXD} />
+        <Divider />
+        <StatChip label="VOLUME" value={`${parseFloat(formatEther(totalVolume)).toFixed(2)} ${sym}`} />
         <Link
           href="/"
-          className="ml-auto flex items-center gap-1 shrink-0 transition-colors"
-          style={{ color: '#2A4570', fontFamily: 'var(--font-jb, monospace)', fontSize: '10px', letterSpacing: '0.14em' }}
-          onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#4F7CF5'}
-          onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#2A4570'}
+          style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:4, fontFamily:JB, fontSize:9, letterSpacing:'0.16em', color:TXM, textDecoration:'none', transition:'color .2s', flexShrink:0 }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = TXL}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = TXM}
         >
-          <ArrowLeft size={10} /> LANDING
+          <ArrowLeft size={9} /> BACK
         </Link>
       </div>
 
-      {/* ── Main layout ────────────────────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* ── Main layout */}
+      <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
 
-        {/* ── Left panel ─────────────────────────────────────────────────── */}
-        <div
-          className="w-full md:w-[380px] lg:w-[420px] flex flex-col shrink-0 border-r"
-          style={{ background: '#0A1628', borderColor: '#0E1B2E' }}
-        >
+        {/* ── Left panel */}
+        <div style={{ width:'100%', maxWidth:400, display:'flex', flexDirection:'column', flexShrink:0, borderRight:`1px solid ${BD}`, background:BG2 }}>
+
           {/* Tabs */}
-          <div className="flex shrink-0 border-b" style={{ borderColor: '#0E1B2E' }}>
-            <AppTab active={tab === 'market'} onClick={() => setTab('market')}>MARKETPLACE</AppTab>
-            <AppTab active={tab === 'mine'}   onClick={() => setTab('mine')}>MY ESCROWS</AppTab>
+          <div style={{ display:'flex', borderBottom:`1px solid ${BD}`, flexShrink:0 }}>
+            <TabBtn active={tab === 'market'} onClick={() => setTab('market')} icon={<TrendingUp size={11} />}>MARKETPLACE</TabBtn>
+            <TabBtn active={tab === 'mine'}   onClick={() => setTab('mine')}   icon={<Lock size={11} />}>MY ESCROWS</TabBtn>
           </div>
 
-          {/* Search + filters */}
-          <div className="p-3 space-y-2 shrink-0 border-b" style={{ borderColor: '#0E1B2E' }}>
-            <div className="relative">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#2A4570' }} />
+          {/* Search */}
+          <div style={{ padding:'0.75rem', borderBottom:`1px solid ${BD}`, flexShrink:0 }}>
+            <div style={{ position:'relative' }}>
+              <Search size={12} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:TXM, pointerEvents:'none' }} />
               <input
-                className="input pl-8"
+                style={{
+                  width:'100%', background:BG3, border:`1px solid ${BD}`, color:TXL,
+                  fontFamily:JB, fontSize:11, letterSpacing:'0.06em',
+                  padding:'0.5rem 0.75rem 0.5rem 2rem', outline:'none',
+                }}
                 placeholder="Search listings…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onFocus={e => (e.currentTarget.style.borderColor = BD2)}
+                onBlur={e  => (e.currentTarget.style.borderColor = BD)}
               />
-            </div>
-            <div className="flex gap-1.5 items-center">
-              {(['all', 'open', 'locked'] as const).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
-                  className="px-3 py-1 text-xs font-medium transition-colors capitalize border"
-                  style={{
-                    fontFamily:    'var(--font-jb, monospace)',
-                    letterSpacing: '0.1em',
-                    fontSize:      '10px',
-                    background:    statusFilter === s ? 'rgba(79,124,245,0.12)' : 'transparent',
-                    color:         statusFilter === s ? '#4F7CF5' : '#2A4570',
-                    borderColor:   statusFilter === s ? 'rgba(79,124,245,0.3)' : '#142040',
-                  }}
-                >
-                  {s.toUpperCase()}
-                </button>
-              ))}
-              <button
-                onClick={refresh}
-                className="ml-auto p-1.5 transition-colors"
-                title="Refresh"
-                style={{ color: '#2A4570' }}
-                onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#4F7CF5'}
-                onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#2A4570'}
-              >
-                <RefreshCw size={13} />
-              </button>
             </div>
           </div>
 
-          {/* Create button */}
-          <div className="p-3 shrink-0 border-b" style={{ borderColor: '#0E1B2E' }}>
+          {/* Filters */}
+          <div style={{ padding:'0.625rem 0.75rem', borderBottom:`1px solid ${BD}`, display:'flex', gap:6, alignItems:'center', flexShrink:0 }}>
+            {(['all','open','locked'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setStatusFilter(f)}
+                style={{
+                  fontFamily:JB, fontSize:9, letterSpacing:'0.14em', padding:'4px 10px',
+                  border:`1px solid ${statusFilter === f ? BD2 : BD}`,
+                  background: statusFilter === f ? 'rgba(46,87,255,0.1)' : 'transparent',
+                  color: statusFilter === f ? ARC : TXM,
+                  cursor:'pointer', transition:'all .18s',
+                }}
+              >
+                {f.toUpperCase()}
+              </button>
+            ))}
             <button
-              onClick={() => setShowCreate(true)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 text-white font-semibold transition-colors"
-              style={{
-                background:    '#4F7CF5',
-                fontFamily:    'var(--font-jb, monospace)',
-                fontSize:      '11px',
-                letterSpacing: '0.12em',
-              }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#6B93F7'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#4F7CF5'}
+              onClick={refresh}
+              title="Refresh"
+              style={{ marginLeft:'auto', background:'transparent', border:'none', cursor:'pointer', color:TXM, display:'flex', alignItems:'center', padding:4, transition:'color .2s' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = ARC}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = TXM}
             >
-              <Plus size={14} /> CREATE LISTING
+              <RefreshCw size={13} />
             </button>
           </div>
 
+          {/* Create button */}
+          <div style={{ padding:'0.75rem', borderBottom:`1px solid ${BD}`, flexShrink:0 }}>
+            <button
+              onClick={() => setShowCreate(true)}
+              style={{
+                width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                padding:'0.625rem', background:ARC, color:'#fff', border:'none', cursor:'pointer',
+                fontFamily:JB, fontSize:10.5, fontWeight:700, letterSpacing:'0.14em',
+                transition:'background .18s, transform .1s',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#4B6DFF' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ARC }}
+            >
+              <Plus size={13} /> CREATE LISTING
+            </button>
+          </div>
+
+          {/* Count badge */}
+          {displayed.length > 0 && (
+            <div style={{ padding:'0.5rem 0.75rem', borderBottom:`1px solid ${BD}`, display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+              <span style={{ fontFamily:JB, fontSize:9, letterSpacing:'0.12em', color:TXM }}>
+                {displayed.length} LISTING{displayed.length !== 1 ? 'S' : ''}
+              </span>
+              {statusFilter !== 'all' && (
+                <span style={{ fontFamily:JB, fontSize:9, letterSpacing:'0.1em', color:ARC, border:`1px solid ${BD2}`, padding:'1px 7px', background:'rgba(46,87,255,0.06)' }}>
+                  {statusFilter.toUpperCase()}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Listing cards */}
-          <div className="flex-1 overflow-y-auto">
+          <div style={{ flex:1, overflowY:'auto' }}>
             {displayed.length === 0 ? (
               <EmptyList tab={tab} hasCount={!!count && count > 0n} />
             ) : (
@@ -239,8 +251,8 @@ export default function MarketplacePage() {
           </div>
         </div>
 
-        {/* ── Right panel ────────────────────────────────────────────────── */}
-        <div className="hidden md:flex flex-1 flex-col overflow-hidden" style={{ background: '#060D1F' }}>
+        {/* ── Right panel */}
+        <div style={{ display:'none', flex:1, flexDirection:'column', overflow:'hidden', background:BG }} className="md:flex">
           {selectedListing ? (
             <TransactionDetail listing={selectedListing} onRefresh={refresh} />
           ) : (
@@ -258,43 +270,50 @@ export default function MarketplacePage() {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function AppTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function TabBtn({ active, onClick, children, icon }: { active: boolean; onClick: () => void; children: React.ReactNode; icon?: React.ReactNode }) {
   return (
     <button
       onClick={onClick}
-      className="flex-1 py-3 text-xs font-medium transition-colors border-b-2"
       style={{
-        fontFamily:    'var(--font-jb, monospace)',
-        letterSpacing: '0.14em',
-        borderBottomColor: active ? '#4F7CF5' : 'transparent',
-        color:         active ? '#4F7CF5' : '#3A5A8B',
-        background:    'transparent',
+        flex:1, padding:'0.75rem 0.5rem',
+        display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+        fontFamily:JB, fontSize:9.5, letterSpacing:'0.14em',
+        borderBottom:`2px solid ${active ? ARC : 'transparent'}`,
+        color: active ? ARC : TXM,
+        background:'transparent', border:'none', cursor:'pointer',
+        borderBottomStyle:'solid', borderBottomWidth:2,
+        borderBottomColor: active ? ARC : 'transparent',
+        transition:'color .2s, border-color .2s',
       }}
     >
-      {children}
+      {icon}{children}
     </button>
   )
 }
 
-function TermStat({ label, value, active, dim }: { label: string; value: string; active?: boolean; dim?: boolean }) {
+function StatChip({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div className="flex items-center gap-1.5 shrink-0" style={{ fontFamily: 'var(--font-jb, monospace)', fontSize: '10px', letterSpacing: '0.1em' }}>
-      <span style={{ color: '#2A4570' }}>{label}:</span>
-      <span style={{ color: active ? '#4F7CF5' : dim ? '#3A5A8B' : '#7BA4F8', fontWeight: 700 }}>{value}</span>
+    <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0, padding:'0 0.75rem' }}>
+      <span style={{ fontFamily:JB, fontSize:9, letterSpacing:'0.12em', color:TXM }}>{label}</span>
+      <span style={{ fontFamily:JB, fontSize:9.5, fontWeight:700, letterSpacing:'0.08em', color: color ?? TXD }}>{value}</span>
     </div>
   )
 }
 
+function Divider() {
+  return <div style={{ width:1, height:12, background:BD, flexShrink:0 }} />
+}
+
 function EmptyList({ tab, hasCount }: { tab: string; hasCount: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center h-48 gap-3" style={{ color: '#2A4570' }}>
-      <div className="text-3xl" style={{ fontFamily: 'var(--font-bebas, sans-serif)', color: '#0E1B2E' }}>⬡</div>
-      <p className="text-xs" style={{ fontFamily: 'var(--font-jb, monospace)', letterSpacing: '0.1em', color: '#2A4570' }}>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:200, gap:12 }}>
+      <span style={{ fontFamily:BB, fontSize:'3rem', color:'rgba(46,87,255,0.08)', lineHeight:1 }}>⬡</span>
+      <p style={{ fontFamily:JB, fontSize:9.5, letterSpacing:'0.14em', color:TXM, textAlign:'center' }}>
         {tab === 'mine'
           ? 'NO ESCROWS FOR YOUR WALLET'
           : hasCount
             ? 'NO LISTINGS MATCH FILTER'
-            : 'VAULT IS EMPTY — LIST FIRST'}
+            : 'VAULT IS EMPTY — CREATE A LISTING'}
       </p>
     </div>
   )
@@ -302,16 +321,9 @@ function EmptyList({ tab, hasCount }: { tab: string; hasCount: boolean }) {
 
 function EmptyDetail() {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-4">
-      <div
-        className="flex items-center justify-center text-4xl"
-        style={{ width: 72, height: 72, background: '#0A1628', border: '1px solid #142040', color: '#142040', fontFamily: 'var(--font-bebas, sans-serif)' }}
-      >
-        ⬡
-      </div>
-      <p className="text-xs" style={{ fontFamily: 'var(--font-jb, monospace)', letterSpacing: '0.14em', color: '#1B2E4A' }}>
-        SELECT A LISTING TO VIEW DETAILS
-      </p>
+    <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
+      <div style={{ width:64, height:64, border:`1px solid rgba(46,87,255,0.12)`, background:'rgba(46,87,255,0.04)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:BB, fontSize:'2rem', color:'rgba(46,87,255,0.2)' }}>⬡</div>
+      <p style={{ fontFamily:JB, fontSize:9.5, letterSpacing:'0.16em', color:'rgba(255,255,255,0.1)' }}>SELECT A LISTING TO VIEW DETAILS</p>
     </div>
   )
 }

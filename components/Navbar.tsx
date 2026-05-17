@@ -1,46 +1,112 @@
 'use client'
 
 import Link from 'next/link'
-import { Shield, BarChart3 } from 'lucide-react'
-import { WalletButton } from './WalletButton'
 import { useListingCount } from '@/hooks/useEscrowContract'
 import { CONTRACT_ADDRESS } from '@/lib/contract'
+import { WalletButton } from './WalletButton'
+import { useNativeSymbol } from '@/hooks/useNativeSymbol'
 
 export function Navbar() {
   const { data: count } = useListingCount()
+  const sym = useNativeSymbol()
 
   return (
-    <nav className="sticky top-0 z-50 h-16 bg-slate-900/95 backdrop-blur border-b border-slate-800 flex items-center px-4 gap-4">
+    <nav
+      className="sticky top-0 z-50 flex items-center shrink-0"
+      style={{
+        height: 56,
+        padding: '0 1.25rem',
+        gap: '1rem',
+        background: '#04080F',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        backdropFilter: 'blur(8px)',
+      }}
+    >
       {/* Logo */}
-      <Link href="/" className="flex items-center gap-2 shrink-0">
-        <div className="w-8 h-8 flex items-center justify-center text-lg" style={{ background: 'rgba(79,124,245,0.12)', border: '1px solid rgba(79,124,245,0.3)', color: '#4F7CF5', fontFamily: 'var(--font-bebas, sans-serif)' }}>
+      <Link
+        href="/"
+        className="flex items-center gap-2 shrink-0 no-underline"
+        style={{ textDecoration: 'none' }}
+      >
+        <span
+          style={{
+            fontFamily: 'var(--font-bebas, sans-serif)',
+            fontSize: '1.375rem',
+            color: '#2E57FF',
+            lineHeight: 1,
+          }}
+        >
           ⬡
-        </div>
-        <span className="hidden sm:block text-sm" style={{ fontFamily: 'var(--font-bebas, sans-serif)', letterSpacing: '0.12em', color: '#E4EAF8' }}>ARCROW</span>
+        </span>
+        <span
+          style={{
+            fontFamily: 'var(--font-bebas, sans-serif)',
+            fontSize: '1.25rem',
+            letterSpacing: '0.1em',
+            color: '#EDE9F8',
+          }}
+        >
+          Scrow
+        </span>
       </Link>
 
-      {/* Stats */}
-      <div className="hidden md:flex items-center gap-4 text-xs text-slate-500 ml-2">
-        <div className="flex items-center gap-1.5">
-          <BarChart3 size={12} className="text-emerald-500" />
-          <span>Contract:</span>
-          <span className="font-mono text-slate-400">
-            {CONTRACT_ADDRESS.slice(0, 6)}…{CONTRACT_ADDRESS.slice(-4)}
-          </span>
-        </div>
-        {count !== undefined && (
-          <div className="flex items-center gap-1">
-            <span className="text-emerald-500 font-semibold">{count.toString()}</span>
-            <span>listings</span>
-          </div>
-        )}
+      {/* Live indicator */}
+      <div
+        className="hidden sm:flex items-center gap-1.5"
+        style={{
+          fontFamily: 'var(--font-jb, monospace)',
+          fontSize: 9,
+          letterSpacing: '0.18em',
+          color: '#2E57FF',
+          border: '1px solid rgba(46,87,255,0.2)',
+          background: 'rgba(46,87,255,0.06)',
+          padding: '3px 10px',
+        }}
+      >
+        <span
+          style={{
+            width: 4,
+            height: 4,
+            borderRadius: '50%',
+            background: '#2E57FF',
+            display: 'inline-block',
+            animation: 'pulse-led 1.8s ease-in-out infinite',
+          }}
+        />
+        LIVE · {sym}
       </div>
 
-      {/* Vault indicator */}
-      <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-xs text-emerald-400">
-        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-        Vault Active
+      {/* Contract address */}
+      <div
+        className="hidden md:flex items-center gap-1.5"
+        style={{
+          fontFamily: 'var(--font-jb, monospace)',
+          fontSize: 9,
+          letterSpacing: '0.1em',
+          color: 'rgba(255,255,255,0.18)',
+        }}
+      >
+        <span style={{ color: 'rgba(255,255,255,0.1)' }}>CONTRACT</span>
+        <span style={{ color: 'rgba(255,255,255,0.3)' }}>
+          {CONTRACT_ADDRESS.slice(0, 6)}…{CONTRACT_ADDRESS.slice(-4)}
+        </span>
       </div>
+
+      {/* Listing count */}
+      {count !== undefined && count > 0n && (
+        <div
+          className="hidden lg:flex items-center gap-1"
+          style={{
+            fontFamily: 'var(--font-jb, monospace)',
+            fontSize: 9,
+            letterSpacing: '0.1em',
+            color: 'rgba(255,255,255,0.18)',
+          }}
+        >
+          <span style={{ color: '#2E57FF', fontWeight: 700 }}>{count.toString()}</span>
+          <span>LISTINGS</span>
+        </div>
+      )}
 
       <div className="ml-auto">
         <WalletButton />
