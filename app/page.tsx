@@ -121,7 +121,7 @@ export default function LandingPage() {
           position:'sticky', top:0, zIndex:100,
         }}>
           <Link href="/" style={{ display:'flex', alignItems:'center', gap:'0.5rem', textDecoration:'none', flexShrink:0 }}>
-            <Image src="/logo.png" alt="Scrow" width={28} height={28} style={{ objectFit:'contain' }} priority />
+            <Image src="/logo.png" alt="Scrow" width={32} height={48} style={{ width:32, height:48, objectFit:'contain', filter:'drop-shadow(0 0 8px rgba(46,87,255,0.8))' }} priority />
             <span style={{ fontFamily:BB, fontSize:'1.25rem', letterSpacing:'0.12em', color:TXL }}>Scrow</span>
           </Link>
           {!mob && (
@@ -159,7 +159,16 @@ export default function LandingPage() {
             {[mob?260:340, mob?190:248, mob?124:162].map((d,i) => (
               <div key={i} aria-hidden style={{ position:'absolute', width:d, height:d, borderRadius:'50%', border:`1px solid rgba(46,87,255,${[0.1,0.18,0.26][i]})`, pointerEvents:'none' }} />
             ))}
-            <div style={{ fontSize: mob ? '4rem' : '6rem', color:ARC, animation:'arc-glow 3s ease-in-out infinite', position:'relative', lineHeight:1, padding: mob ? '1.5rem' : '2.5rem', zIndex:1 }}>⬡</div>
+            <div style={{ position:'relative', zIndex:1, padding: mob ? '0.5rem' : '1rem' }}>
+              <Image
+                src="/logo.png"
+                alt="Scrow"
+                width={mob ? 70 : 110}
+                height={mob ? 104 : 163}
+                style={{ width: mob ? 70 : 110, height: mob ? 104 : 163, objectFit:'contain', animation:'arc-glow 3s ease-in-out infinite', filter:'drop-shadow(0 0 40px rgba(46,87,255,1)) drop-shadow(0 0 80px rgba(46,87,255,0.5))' }}
+                priority
+              />
+            </div>
           </div>
 
           {/* Badge */}
@@ -307,7 +316,9 @@ export default function LandingPage() {
 
         {/* ══════════════════════════════════════ CTA */}
         <div style={{ background:CREAM, padding: mob ? '5rem 1.25rem' : '10rem 3rem', borderTop:`1px solid ${EL}`, position:'relative', overflow:'hidden' }}>
-          <div aria-hidden style={{ position:'absolute', right:'-5rem', bottom:'-6rem', fontSize:'45vw', color:EL, fontFamily:BB, lineHeight:1, pointerEvents:'none', userSelect:'none' }}>⬡</div>
+          <div aria-hidden style={{ position:'absolute', right:'-8rem', bottom:'-10rem', pointerEvents:'none', userSelect:'none', lineHeight:0 }}>
+            <Image src="/logo.png" alt="" width={900} height={900} style={{ width:'60vw', height:'60vw', maxWidth:900, objectFit:'contain', filter:'invert(1) opacity(0.09)', display:'block' }} />
+          </div>
           <div style={{ maxWidth:900, position:'relative', zIndex:1 }}>
             <Eyebrow>READY TO TRADE</Eyebrow>
             <h2 style={{ fontFamily:BB, fontSize: mob ? 'clamp(3rem,14vw,6rem)' : 'clamp(4rem,9vw,11rem)', color:TXT, lineHeight:0.88, margin:'0 0 2rem', letterSpacing:'-0.01em' }}>
@@ -602,7 +613,7 @@ function Vault({ phase, phases, mob }: { phase: number; phases: readonly string[
         <VL active={ba} label={bAmt} />
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0.375rem', padding:'1.25rem 2rem', border:'1px solid rgba(46,87,255,0.2)', background:'rgba(46,87,255,0.05)', position:'relative', flexShrink:0 }}>
           <div aria-hidden style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 80% 60% at 50% 50%,rgba(46,87,255,0.08),transparent)', pointerEvents:'none' }} />
-          <span style={{ fontSize:'3.5rem', lineHeight:1, color:ARC, animation:'arc-glow 3s ease-in-out infinite', position:'relative' }}>⬡</span>
+          <Image src="/logo.png" alt="Vault" width={54} height={80} style={{ width:54, height:80, objectFit:'contain', animation:'arc-glow 3s ease-in-out infinite', filter:'drop-shadow(0 0 20px rgba(46,87,255,0.9))', position:'relative' }} />
           <span style={{ fontFamily:JB, fontSize:8, fontWeight:700, letterSpacing:'0.28em', color:'rgba(46,87,255,0.5)' }}>VAULT</span>
           <span style={{ fontFamily:JB, fontSize:8, letterSpacing:'0.12em', padding:'2px 8px', border:`1px solid ${lk?'rgba(46,87,255,0.35)':ED}`, color:lk?ARC:'rgba(255,255,255,0.2)', background:lk?'rgba(46,87,255,0.08)':'transparent', transition:'all .4s' }}>{state}</span>
         </div>
@@ -671,7 +682,7 @@ function VaultMobile({ phase, phases, bAmt, sAmt, state, lk }: {
         {/* Center vault hex */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0.375rem', padding:'1rem 0.875rem', border:'1px solid rgba(46,87,255,0.2)', background:'rgba(46,87,255,0.05)', position:'relative', flexShrink:0 }}>
           <div aria-hidden style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 50% 50%,rgba(46,87,255,0.1),transparent)', pointerEvents:'none' }} />
-          <span style={{ fontSize:'2.25rem', lineHeight:1, color:ARC, animation:'arc-glow 3s ease-in-out infinite', position:'relative' }}>⬡</span>
+          <Image src="/logo.png" alt="Vault" width={38} height={56} style={{ width:38, height:56, objectFit:'contain', animation:'arc-glow 3s ease-in-out infinite', filter:'drop-shadow(0 0 16px rgba(46,87,255,0.9))', position:'relative' }} />
           <span style={{ fontFamily:JB, fontSize:7, fontWeight:700, letterSpacing:'0.22em', color:'rgba(46,87,255,0.5)' }}>VAULT</span>
           <span style={{ fontFamily:JB, fontSize:7, letterSpacing:'0.1em', padding:'1px 6px', border:`1px solid ${lk?'rgba(46,87,255,0.35)':ED}`, color:lk?ARC:'rgba(255,255,255,0.18)', background:lk?'rgba(46,87,255,0.08)':'transparent', transition:'all .4s', whiteSpace:'nowrap' }}>{state}</span>
         </div>

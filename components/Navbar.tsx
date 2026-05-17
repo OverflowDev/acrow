@@ -29,7 +29,7 @@ export function Navbar() {
         className="flex items-center gap-2 shrink-0 no-underline"
         style={{ textDecoration: 'none' }}
       >
-        <Image src="/logo.png" alt="Scrow" width={28} height={28} style={{ objectFit: 'contain' }} priority />
+        <Image src="/logo.png" alt="Scrow" width={32} height={48} style={{ width:32, height:48, objectFit:'contain', filter:'drop-shadow(0 0 8px rgba(46,87,255,0.8))' }} priority />
         <span
           style={{
             fontFamily: 'var(--font-bebas, sans-serif)',
