@@ -55,7 +55,7 @@ function useCounter(target: number, ms = 1800, active = false) {
 }
 
 function useWindowWidth() {
-  const [w, setW] = useState(1280)
+  const [w, setW] = useState(0)
   useEffect(() => {
     setW(window.innerWidth)
     const fn = () => setW(window.innerWidth)
@@ -75,7 +75,7 @@ export default function LandingPage() {
   const dot      = useRef<HTMLDivElement>(null)
   const statsRef = useRef<HTMLDivElement>(null)
   const w        = useWindowWidth()
-  const mob      = w < 768
+  const mob      = w === 0 || w < 768
 
   const c1 = useCounter(10,  1400, statsOn)
   const c2 = useCounter(380, 1900, statsOn)
@@ -574,62 +574,55 @@ function Eyebrow({ children }: { children: React.ReactNode; dark?: boolean }) {
 
 // ─── Vault terminal ───────────────────────────────────────────────────────────
 function Vault({ phase, phases, mob }: { phase: number; phases: readonly string[]; mob: boolean }) {
-  const ba = phase >= 1, sa = phase >= 3, lk = phase >= 1
+  const lk    = phase >= 1
   const bAmt  = phase === 0 ? 'PENDING' : phase === 1 ? '0.5000 USDC' : '✓ FUNDED'
   const sAmt  = phase < 3  ? 'PENDING'  : '0.4950 USDC'
   const state = ['OPEN','LOCKED','CONFIRMING','SETTLED'][phase]
 
+  if (mob) return <VaultMobile phase={phase} phases={phases} bAmt={bAmt} sAmt={sAmt} state={state} lk={lk} />
+
+  const ba = phase >= 1, sa = phase >= 3
   return (
     <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', background:'rgba(46,87,255,0.015)' }}>
       <div aria-hidden style={{ position:'absolute', top:0, left:0, right:0, height:1, background:'linear-gradient(90deg,transparent,rgba(46,87,255,0.6) 40%,rgba(46,87,255,0.6) 60%,transparent)', pointerEvents:'none' }} />
-
-      {/* Chrome */}
-      <div style={{ display:'flex', alignItems:'center', gap:'0.35rem', padding: mob ? '0.625rem 1rem' : '0.75rem 1.25rem', borderBottom:`1px solid ${ED}`, flexShrink:0 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:'0.35rem', padding:'0.75rem 1.25rem', borderBottom:`1px solid ${ED}`, flexShrink:0 }}>
         {['#FF5F57','#FFBD2E','#28C840'].map((c,i) => <span key={i} style={{ width:8, height:8, borderRadius:'50%', background:c, display:'inline-block', marginLeft:i>0?3:0 }} />)}
-        {!mob && <span style={{ fontFamily:JB, fontSize:9, letterSpacing:'0.14em', color:'rgba(255,255,255,0.2)', marginLeft:'0.5rem', flex:1 }}>ARCROW VAULT · 0x4a2f…e391</span>}
-        <div style={{ display:'flex', alignItems:'center', gap:'0.3rem', fontFamily:JB, fontSize:8, fontWeight:700, letterSpacing:'0.16em', color:ARC, border:'1px solid rgba(46,87,255,0.2)', padding:'2px 7px', background:'rgba(46,87,255,0.06)', marginLeft: mob ? 'auto' : 0 }}>
+        <span style={{ fontFamily:JB, fontSize:9, letterSpacing:'0.14em', color:'rgba(255,255,255,0.2)', marginLeft:'0.5rem', flex:1 }}>ARCROW VAULT · 0x4a2f…e391</span>
+        <div style={{ display:'flex', alignItems:'center', gap:'0.3rem', fontFamily:JB, fontSize:8, fontWeight:700, letterSpacing:'0.16em', color:ARC, border:'1px solid rgba(46,87,255,0.2)', padding:'2px 7px', background:'rgba(46,87,255,0.06)' }}>
           <span style={{ width:4, height:4, borderRadius:'50%', background:ARC, display:'inline-block', animation:'pulse-led 1.4s ease-in-out infinite' }} /> LIVE
         </div>
       </div>
-
-      {/* Status */}
-      <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', padding: mob ? '0.4rem 1rem' : '0.5rem 1.25rem', borderBottom:`1px solid ${ED}`, fontFamily:JB, fontSize: mob ? 9 : 10, letterSpacing:'0.12em', color:'rgba(255,255,255,0.2)', flexShrink:0 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.5rem 1.25rem', borderBottom:`1px solid ${ED}`, fontFamily:JB, fontSize:10, letterSpacing:'0.12em', color:'rgba(255,255,255,0.2)', flexShrink:0 }}>
         <span style={{ width:5, height:5, borderRadius:'50%', background:ARC, display:'inline-block', animation:'pulse-led 1.6s ease-in-out infinite', flexShrink:0 }} />
         STATUS:&nbsp;<span style={{ color:ARC, fontWeight:700 }}>{phases[phase]}</span>
       </div>
-
-      {/* Flow */}
-      <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding: mob ? '1rem 1.5rem' : '1.5rem 2rem', minHeight:0 }}>
-        <VN l="BUYER"  a="0xBu…yer1" ch="B" mob={mob} />
+      <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'1.5rem 2rem', minHeight:0 }}>
+        <VN l="BUYER"  a="0xBu…yer1" ch="B" />
         <VL active={ba} label={bAmt} />
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0.375rem', padding: mob ? '0.875rem 1.5rem' : '1.25rem 2rem', border:'1px solid rgba(46,87,255,0.2)', background:'rgba(46,87,255,0.05)', position:'relative', flexShrink:0 }}>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0.375rem', padding:'1.25rem 2rem', border:'1px solid rgba(46,87,255,0.2)', background:'rgba(46,87,255,0.05)', position:'relative', flexShrink:0 }}>
           <div aria-hidden style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 80% 60% at 50% 50%,rgba(46,87,255,0.08),transparent)', pointerEvents:'none' }} />
-          <span style={{ fontSize: mob ? '2.5rem' : '3.5rem', lineHeight:1, color:ARC, animation:'arc-glow 3s ease-in-out infinite', position:'relative' }}>⬡</span>
+          <span style={{ fontSize:'3.5rem', lineHeight:1, color:ARC, animation:'arc-glow 3s ease-in-out infinite', position:'relative' }}>⬡</span>
           <span style={{ fontFamily:JB, fontSize:8, fontWeight:700, letterSpacing:'0.28em', color:'rgba(46,87,255,0.5)' }}>VAULT</span>
           <span style={{ fontFamily:JB, fontSize:8, letterSpacing:'0.12em', padding:'2px 8px', border:`1px solid ${lk?'rgba(46,87,255,0.35)':ED}`, color:lk?ARC:'rgba(255,255,255,0.2)', background:lk?'rgba(46,87,255,0.08)':'transparent', transition:'all .4s' }}>{state}</span>
         </div>
         <VL active={sa} label={sAmt} />
-        <VN l="SELLER" a="0xSe…ler2" ch="S" mob={mob} />
+        <VN l="SELLER" a="0xSe…ler2" ch="S" />
       </div>
-
-      {/* Breakdown */}
-      <div style={{ display:'grid', gridTemplateColumns: mob ? '1fr 1fr' : 'repeat(4,1fr)', borderTop:`1px solid ${ED}`, flexShrink:0 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', borderTop:`1px solid ${ED}`, flexShrink:0 }}>
         {[{k:'PRICE',v:'0.5000 USDC',h:false},{k:'COLLATERAL',v:'0.0500',h:false},{k:'FEE (1%)',v:'0.0050',h:false},{k:'SELLER GETS',v:'0.4950 USDC',h:true}].map((c,i) => (
-          <div key={i} style={{ padding: mob ? '0.5rem 0.75rem' : '0.75rem 1rem', borderRight: mob ? (i%2===0?`1px solid ${ED}`:'none') : (i<3?`1px solid ${ED}`:'none'), borderBottom: mob && i<2 ? `1px solid ${ED}` : 'none', background:c.h?'rgba(46,87,255,0.04)':'transparent', display:'flex', flexDirection:'column', gap:'0.2rem' }}>
+          <div key={i} style={{ padding:'0.75rem 1rem', borderRight:i<3?`1px solid ${ED}`:'none', background:c.h?'rgba(46,87,255,0.04)':'transparent', display:'flex', flexDirection:'column', gap:'0.2rem' }}>
             <span style={{ fontFamily:JB, fontSize:7, letterSpacing:'0.16em', color:'rgba(255,255,255,0.2)' }}>{c.k}</span>
-            <span style={{ fontFamily:JB, fontSize: mob ? 9.5 : 11, fontWeight:700, color:c.h?ARC:TXL2 }}>{c.v}</span>
+            <span style={{ fontFamily:JB, fontSize:11, fontWeight:700, color:c.h?ARC:TXL2 }}>{c.v}</span>
           </div>
         ))}
       </div>
-
-      {/* Timeline */}
-      <div style={{ display:'flex', alignItems:'center', padding: mob ? '0.5rem 0.75rem' : '0.625rem 1rem', borderTop:`1px solid ${ED}`, flexShrink:0 }}>
+      <div style={{ display:'flex', alignItems:'center', padding:'0.625rem 1rem', borderTop:`1px solid ${ED}`, flexShrink:0 }}>
         {phases.map((label,i) => (
           <div key={i} style={{ display:'contents' }}>
             {i>0 && <div style={{ flex:1, height:1, background:i<=phase?'rgba(46,87,255,0.45)':ED, transition:'background .3s' }} />}
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0.2rem', flexShrink:0 }}>
               <div style={{ width:5, height:5, borderRadius:'50%', background:i<phase?'rgba(46,87,255,0.5)':i===phase?ARC:ED, boxShadow:i===phase?`0 0 6px ${ARC}`:'none', transition:'all .3s' }} />
-              {!mob && <span style={{ fontFamily:JB, fontSize:7, letterSpacing:'0.08em', whiteSpace:'nowrap', color:i<phase?'rgba(46,87,255,0.5)':i===phase?ARC:'rgba(255,255,255,0.2)', transition:'color .3s' }}>{label}</span>}
+              <span style={{ fontFamily:JB, fontSize:7, letterSpacing:'0.08em', whiteSpace:'nowrap', color:i<phase?'rgba(46,87,255,0.5)':i===phase?ARC:'rgba(255,255,255,0.2)', transition:'color .3s' }}>{label}</span>
             </div>
           </div>
         ))}
@@ -638,15 +631,94 @@ function Vault({ phase, phases, mob }: { phase: number; phases: readonly string[
   )
 }
 
-function VN({ l, a, ch, mob }: { l:string; a:string; ch:string; mob:boolean }) {
-  const sz = mob ? 44 : 54
+// ─── Vault — mobile layout (horizontal buyer/vault/seller row) ─────────────────
+function VaultMobile({ phase, phases, bAmt, sAmt, state, lk }: {
+  phase:number; phases:readonly string[]; bAmt:string; sAmt:string; state:string; lk:boolean
+}) {
+  return (
+    <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', background:'rgba(46,87,255,0.015)', overflow:'hidden' }}>
+
+      {/* Chrome */}
+      <div style={{ display:'flex', alignItems:'center', padding:'0.625rem 1rem', borderBottom:`1px solid ${ED}`, flexShrink:0, gap:'0.5rem' }}>
+        <div style={{ display:'flex', gap:3 }}>
+          {['#FF5F57','#FFBD2E','#28C840'].map((c,i) => <span key={i} style={{ width:8, height:8, borderRadius:'50%', background:c, display:'inline-block' }} />)}
+        </div>
+        <span style={{ fontFamily:JB, fontSize:8, letterSpacing:'0.1em', color:'rgba(255,255,255,0.18)', flex:1 }}>ARCROW VAULT</span>
+        <div style={{ display:'flex', alignItems:'center', gap:'0.25rem', fontFamily:JB, fontSize:7.5, fontWeight:700, letterSpacing:'0.14em', color:ARC, border:'1px solid rgba(46,87,255,0.2)', padding:'2px 7px', background:'rgba(46,87,255,0.06)' }}>
+          <span style={{ width:4, height:4, borderRadius:'50%', background:ARC, display:'inline-block', animation:'pulse-led 1.4s ease-in-out infinite' }} /> LIVE
+        </div>
+      </div>
+
+      {/* Status */}
+      <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.375rem 1rem', borderBottom:`1px solid ${ED}`, fontFamily:JB, fontSize:8.5, letterSpacing:'0.1em', color:'rgba(255,255,255,0.2)', flexShrink:0 }}>
+        <span style={{ width:5, height:5, borderRadius:'50%', background:ARC, display:'inline-block', animation:'pulse-led 1.6s ease-in-out infinite' }} />
+        STATUS:&nbsp;<span style={{ color:ARC, fontWeight:700 }}>{phases[phase]}</span>
+      </div>
+
+      {/* Main body — horizontal three-column flow */}
+      <div style={{ flex:1, display:'grid', gridTemplateColumns:'1fr auto 1fr', alignItems:'center', padding:'1.25rem 1rem', gap:'0.75rem', minHeight:0 }}>
+
+        {/* Buyer */}
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0.5rem' }}>
+          <div style={{ width:44, height:44, border:`1px solid ${ED}`, background:'rgba(255,255,255,0.03)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:BB, fontSize:'1.375rem', color:ARC, position:'relative' }}>
+            <div style={{ position:'absolute', inset:3, border:'1px solid rgba(46,87,255,0.15)' }} />B
+          </div>
+          <span style={{ fontFamily:JB, fontSize:7.5, fontWeight:700, letterSpacing:'0.16em', color:'rgba(255,255,255,0.2)' }}>BUYER</span>
+          <span style={{ fontFamily:JB, fontSize:8, color: phase >= 1 ? ARC : 'rgba(255,255,255,0.15)', textAlign:'center', lineHeight:1.3 }}>{bAmt}</span>
+        </div>
+
+        {/* Center vault hex */}
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0.375rem', padding:'1rem 0.875rem', border:'1px solid rgba(46,87,255,0.2)', background:'rgba(46,87,255,0.05)', position:'relative', flexShrink:0 }}>
+          <div aria-hidden style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse at 50% 50%,rgba(46,87,255,0.1),transparent)', pointerEvents:'none' }} />
+          <span style={{ fontSize:'2.25rem', lineHeight:1, color:ARC, animation:'arc-glow 3s ease-in-out infinite', position:'relative' }}>⬡</span>
+          <span style={{ fontFamily:JB, fontSize:7, fontWeight:700, letterSpacing:'0.22em', color:'rgba(46,87,255,0.5)' }}>VAULT</span>
+          <span style={{ fontFamily:JB, fontSize:7, letterSpacing:'0.1em', padding:'1px 6px', border:`1px solid ${lk?'rgba(46,87,255,0.35)':ED}`, color:lk?ARC:'rgba(255,255,255,0.18)', background:lk?'rgba(46,87,255,0.08)':'transparent', transition:'all .4s', whiteSpace:'nowrap' }}>{state}</span>
+        </div>
+
+        {/* Seller */}
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0.5rem' }}>
+          <div style={{ width:44, height:44, border:`1px solid ${ED}`, background:'rgba(255,255,255,0.03)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:BB, fontSize:'1.375rem', color:ARC, position:'relative' }}>
+            <div style={{ position:'absolute', inset:3, border:'1px solid rgba(46,87,255,0.15)' }} />S
+          </div>
+          <span style={{ fontFamily:JB, fontSize:7.5, fontWeight:700, letterSpacing:'0.16em', color:'rgba(255,255,255,0.2)' }}>SELLER</span>
+          <span style={{ fontFamily:JB, fontSize:8, color: phase >= 3 ? ARC : 'rgba(255,255,255,0.15)', textAlign:'center', lineHeight:1.3 }}>{sAmt}</span>
+        </div>
+      </div>
+
+      {/* Breakdown */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', borderTop:`1px solid ${ED}`, flexShrink:0 }}>
+        {[{k:'PRICE',v:'0.5000 USDC',h:false},{k:'SELLER GETS',v:'0.4950 USDC',h:true},{k:'COLLATERAL',v:'0.0500 USDC',h:false},{k:'FEE (1%)',v:'0.0050 USDC',h:false}].map((c,i) => (
+          <div key={i} style={{ padding:'0.625rem 0.875rem', borderRight:i%2===0?`1px solid ${ED}`:'none', borderBottom:i<2?`1px solid ${ED}`:'none', background:c.h?'rgba(46,87,255,0.05)':'transparent', display:'flex', flexDirection:'column', gap:'0.2rem' }}>
+            <span style={{ fontFamily:JB, fontSize:7, letterSpacing:'0.14em', color:'rgba(255,255,255,0.18)' }}>{c.k}</span>
+            <span style={{ fontFamily:JB, fontSize:10.5, fontWeight:700, color:c.h?ARC:TXL2 }}>{c.v}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Timeline — dots only on mobile */}
+      <div style={{ display:'flex', alignItems:'center', padding:'0.5rem 1rem', borderTop:`1px solid ${ED}`, flexShrink:0, gap:0 }}>
+        {phases.map((label,i) => (
+          <div key={i} style={{ display:'contents' }}>
+            {i>0 && <div style={{ flex:1, height:1, background:i<=phase?'rgba(46,87,255,0.45)':ED, transition:'background .3s' }} />}
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0.2rem', flexShrink:0 }}>
+              <div style={{ width:6, height:6, borderRadius:'50%', background:i<phase?'rgba(46,87,255,0.5)':i===phase?ARC:ED, boxShadow:i===phase?`0 0 6px ${ARC}`:'none', transition:'all .3s' }} />
+              <span style={{ fontFamily:JB, fontSize:6, letterSpacing:'0.06em', color:i===phase?ARC:'rgba(255,255,255,0.18)', whiteSpace:'nowrap' }}>{label}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function VN({ l, a, ch }: { l:string; a:string; ch:string }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0.3rem', flexShrink:0 }}>
-      <div style={{ width:sz, height:sz, border:`1px solid ${ED}`, background:'rgba(255,255,255,0.03)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:BB, fontSize: mob ? '1.125rem' : '1.5rem', color:ARC, position:'relative' }}>
+      <div style={{ width:54, height:54, border:`1px solid ${ED}`, background:'rgba(255,255,255,0.03)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:BB, fontSize:'1.5rem', color:ARC, position:'relative' }}>
         <div style={{ position:'absolute', inset:4, border:'1px solid rgba(46,87,255,0.15)' }} />{ch}
       </div>
       <span style={{ fontFamily:JB, fontSize:8, fontWeight:700, letterSpacing:'0.18em', color:'rgba(255,255,255,0.2)' }}>{l}</span>
-      {!mob && <span style={{ fontFamily:JB, fontSize:8, color:'rgba(255,255,255,0.1)' }}>{a}</span>}
+      <span style={{ fontFamily:JB, fontSize:8, color:'rgba(255,255,255,0.1)' }}>{a}</span>
     </div>
   )
 }
