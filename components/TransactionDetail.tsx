@@ -212,7 +212,7 @@ export function TransactionDetail({ listing, onRefresh }: TransactionDetailProps
         </div>
 
         {/* ─── Chat Panel ───────────────────────────────────────────────────── */}
-        {(status === ListingStatus.LOCKED || status === ListingStatus.DISPUTED || status === ListingStatus.COMPLETED) && (
+        {isParty && (status === ListingStatus.LOCKED || status === ListingStatus.DISPUTED || status === ListingStatus.COMPLETED) && (
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Chat & Negotiation</p>
             <ChatPanel

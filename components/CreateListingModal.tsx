@@ -9,12 +9,37 @@ import { useNativeSymbol } from '@/hooks/useNativeSymbol'
 
 const CATEGORIES = ['General', 'Crypto', 'NFT', 'Whitelist', 'Service', 'Digital', 'Physical']
 
-const COLLATERAL_PRESETS = [
-  { label: 'None',  value: '0',    hint: 'Standard sale' },
-  { label: '10%',   value: '',     hint: 'Recommended for NFT sales', pct: 0.1 },
-  { label: '25%',   value: '',     hint: 'High-trust whitelist spots', pct: 0.25 },
-  { label: 'Custom',value: 'custom', hint: '' },
-]
+const ARC  = '#2E57FF'
+const BG   = '#05080F'
+const BG2  = '#08101E'
+const BG3  = '#0C1525'
+const BD   = 'rgba(255,255,255,0.07)'
+const BD2  = 'rgba(46,87,255,0.25)'
+const TXL  = '#EDE9F8'
+const TXM  = '#6B6B99'
+const JB   = 'var(--font-jb,monospace)'
+const BB   = 'var(--font-bebas,sans-serif)'
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  background: BG3,
+  border: `1px solid ${BD}`,
+  color: TXL,
+  fontFamily: JB,
+  fontSize: 12,
+  letterSpacing: '0.04em',
+  padding: '0.5rem 0.75rem',
+  outline: 'none',
+}
+
+const labelStyle: React.CSSProperties = {
+  fontFamily: JB,
+  fontSize: 9,
+  letterSpacing: '0.2em',
+  color: TXM,
+  display: 'block',
+  marginBottom: 6,
+}
 
 interface CreateListingModalProps {
   onClose:    () => void
@@ -27,17 +52,16 @@ export function CreateListingModal({ onClose, onCreated }: CreateListingModalPro
   const sym = useNativeSymbol()
 
   const [form, setForm] = useState({
-    title:        '',
-    description:  '',
-    category:     'General',
-    priceEth:     '',
-    imageUrl:     '',
+    title:         '',
+    description:   '',
+    category:      'General',
+    priceEth:      '',
     collateralEth: '0',
   })
-  const [collateralMode, setCollateralMode] = useState<'none' | 'pct' | 'custom'>('none')
+  const [collateralMode, setCollateralMode] = useState<'none' | 'pct10' | 'pct25' | 'custom'>('none')
   const [customCollateral, setCustomCollateral] = useState('')
-  const [error, setError]   = useState<string | null>(null)
-  const [step,  setStep]    = useState<'form' | 'confirming' | 'done'>('form')
+  const [error, setError] = useState<string | null>(null)
+  const [step,  setStep]  = useState<'form' | 'confirming' | 'done'>('form')
 
   const set = (k: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
@@ -47,19 +71,17 @@ export function CreateListingModal({ onClose, onCreated }: CreateListingModalPro
 
   const collateralEth = (() => {
     if (collateralMode === 'none')   return '0'
+    if (collateralMode === 'pct10')  return (price * 0.10).toFixed(6)
+    if (collateralMode === 'pct25')  return (price * 0.25).toFixed(6)
     if (collateralMode === 'custom') return customCollateral || '0'
-    return (price * parseFloat(form.collateralEth || '0')).toFixed(6)
+    return '0'
   })()
-
-  const totalDeposit = price > 0
-    ? (parseFloat(collateralEth) || 0)
-    : 0
 
   const handleSubmit = useCallback(async () => {
     setError(null)
-    if (!form.title.trim())    { setError('Title is required');        return }
-    if (price <= 0)            { setError('Enter a valid price');      return }
-    if (!address)              { setError('Connect your wallet first'); return }
+    if (!form.title.trim()) { setError('Title is required');        return }
+    if (price <= 0)         { setError('Enter a valid price');      return }
+    if (!address)           { setError('Connect your wallet first'); return }
 
     try {
       setStep('confirming')
@@ -72,9 +94,9 @@ export function CreateListingModal({ onClose, onCreated }: CreateListingModalPro
         contract_id:    0,
         title:          form.title.trim(),
         description:    form.description.trim() || null,
-        image_url:      form.imageUrl.trim() || null,
+        image_url:      null,
         category:       form.category,
-        token_type:     'ETH',
+        token_type:     sym,
         seller_address: address,
       })
 
@@ -85,186 +107,214 @@ export function CreateListingModal({ onClose, onCreated }: CreateListingModalPro
       setError(msg.includes('rejected') ? 'Transaction rejected in wallet.' : msg.slice(0, 150))
       setStep('form')
     }
-  }, [form, address, createListing, collateralEth, price, onCreated])
+  }, [form, address, createListing, collateralEth, price, sym, onCreated])
+
+  const collateralPresets = [
+    { key: 'none'   as const, label: 'None',   hint: 'No collateral'   },
+    { key: 'pct10'  as const, label: '10%',    hint: 'Good for NFTs'   },
+    { key: 'pct25'  as const, label: '25%',    hint: 'Whitelist spots' },
+    { key: 'custom' as const, label: 'Custom', hint: 'Set manually'    },
+  ]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-lg bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div style={{ position:'fixed', inset:0, zIndex:50, display:'flex', alignItems:'center', justifyContent:'center', padding:'1rem', background:'rgba(0,0,0,0.8)', backdropFilter:'blur(6px)' }}>
+      <div style={{ width:'100%', maxWidth:480, background:BG2, border:`1px solid ${BD}`, maxHeight:'90vh', overflowY:'auto', display:'flex', flexDirection:'column' }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 sticky top-0 bg-slate-800 z-10">
-          <div className="flex items-center gap-2">
-            <Shield size={18} className="text-emerald-400" />
-            <h2 className="font-bold text-white">Create Escrow Listing</h2>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'1rem 1.25rem', borderBottom:`1px solid ${BD}`, position:'sticky', top:0, background:BG2, zIndex:10 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <span style={{ fontFamily:BB, fontSize:'1.375rem', color:ARC }}>⬡</span>
+            <span style={{ fontFamily:BB, fontSize:'1.125rem', letterSpacing:'0.1em', color:TXL }}>NEW LISTING</span>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-300">
-            <X size={20} />
+          <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:TXM, padding:4, display:'flex' }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = TXL}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = TXM}
+          >
+            <X size={18} />
           </button>
         </div>
 
         {step === 'done' ? (
-          <div className="px-6 py-8 text-center space-y-4">
-            <div className="w-16 h-16 bg-emerald-500/20 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto">
-              <Shield size={28} className="text-emerald-400" />
-            </div>
+          <div style={{ padding:'3rem 1.25rem', textAlign:'center', display:'flex', flexDirection:'column', alignItems:'center', gap:16 }}>
+            <div style={{ width:64, height:64, border:`1px solid rgba(46,87,255,0.3)`, background:'rgba(46,87,255,0.08)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:BB, fontSize:'2rem', color:ARC }}>⬡</div>
             <div>
-              <p className="text-lg font-bold text-white">Listing Created!</p>
-              <p className="text-sm text-slate-400 mt-1">Your item is now live on the marketplace.</p>
+              <p style={{ fontFamily:BB, fontSize:'1.5rem', color:TXL, letterSpacing:'0.06em' }}>LISTING CREATED</p>
+              <p style={{ fontFamily:JB, fontSize:10, letterSpacing:'0.1em', color:TXM, marginTop:6 }}>Your item is now live on the marketplace.</p>
             </div>
-            <button onClick={onClose} className="btn-primary w-full">Back to Marketplace</button>
+            <button onClick={onClose} style={{ background:ARC, color:'#fff', border:'none', cursor:'pointer', fontFamily:JB, fontSize:10.5, fontWeight:700, letterSpacing:'0.14em', padding:'0.75rem 2rem', width:'100%', marginTop:8 }}>
+              BACK TO MARKETPLACE
+            </button>
           </div>
         ) : (
-          <div className="px-6 py-5 space-y-5">
-            {/* Basic info */}
+          <div style={{ padding:'1.25rem', display:'flex', flexDirection:'column', gap:16 }}>
+
+            {/* Title */}
             <div>
-              <label className="label">Item Title *</label>
-              <input className="input" placeholder="e.g. OG NFT Whitelist Spot — 1 ETH mint price" value={form.title} onChange={set('title')} />
+              <label style={labelStyle}>ITEM TITLE *</label>
+              <input
+                style={inputStyle}
+                placeholder="OG NFT, Whitelist spot, Private deal, etc"
+                value={form.title}
+                onChange={set('title')}
+                onFocus={e  => (e.currentTarget.style.borderColor = BD2)}
+                onBlur={e   => (e.currentTarget.style.borderColor = BD)}
+              />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            {/* Category + Price */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
               <div>
-                <label className="label">Category</label>
-                <select className="input" value={form.category} onChange={set('category')}>
-                  {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                <label style={labelStyle}>CATEGORY</label>
+                <select
+                  style={{ ...inputStyle, cursor:'pointer' }}
+                  value={form.category}
+                  onChange={set('category')}
+                >
+                  {CATEGORIES.map(c => <option key={c} style={{ background:BG3, color:TXL }}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label">Price ({sym}) *</label>
-                <input className="input font-mono" type="number" step="0.0001" min="0" placeholder="0.0000" value={form.priceEth} onChange={set('priceEth')} />
+                <label style={labelStyle}>PRICE ({sym}) *</label>
+                <input
+                  style={{ ...inputStyle, fontFamily:JB }}
+                  type="number" step="0.0001" min="0"
+                  placeholder="0.0000"
+                  value={form.priceEth}
+                  onChange={set('priceEth')}
+                  onFocus={e  => (e.currentTarget.style.borderColor = BD2)}
+                  onBlur={e   => (e.currentTarget.style.borderColor = BD)}
+                />
               </div>
             </div>
 
+            {/* Description */}
             <div>
-              <label className="label">Description</label>
-              <textarea className="input resize-none" rows={2} placeholder="Describe what the buyer receives…" value={form.description} onChange={set('description')} />
+              <label style={labelStyle}>DESCRIPTION</label>
+              <textarea
+                style={{ ...inputStyle, resize:'none', lineHeight:1.6 }}
+                rows={3}
+                placeholder="Describe exactly what the buyer receives — delivery method, timeline, proof…"
+                value={form.description}
+                onChange={set('description')}
+                onFocus={e  => (e.currentTarget.style.borderColor = BD2)}
+                onBlur={e   => (e.currentTarget.style.borderColor = BD)}
+              />
             </div>
 
-            <div>
-              <label className="label">Image URL (optional)</label>
-              <input className="input" placeholder="https://…" value={form.imageUrl} onChange={set('imageUrl')} />
-            </div>
-
-            {/* ─── Collateral Section ──────────────────────────────── */}
-            <div className="border border-slate-700 rounded-xl p-4 space-y-3">
-              <div className="flex items-start gap-2">
-                <Shield size={15} className="text-amber-400 shrink-0 mt-0.5" />
+            {/* Collateral */}
+            <div style={{ border:`1px solid rgba(46,87,255,0.15)`, background:'rgba(46,87,255,0.03)', padding:'1rem' }}>
+              <div style={{ display:'flex', alignItems:'flex-start', gap:8, marginBottom:12 }}>
+                <Shield size={14} style={{ color:ARC, flexShrink:0, marginTop:1 }} />
                 <div>
-                  <p className="text-sm font-semibold text-white">Seller Collateral</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    For NFT / whitelist sales — lock ETH as proof of commitment.
-                    Returned when buyer confirms, paid to buyer if dispute is won against you.
+                  <p style={{ fontFamily:JB, fontSize:10.5, fontWeight:700, letterSpacing:'0.1em', color:TXL, marginBottom:3 }}>SELLER COLLATERAL</p>
+                  <p style={{ fontFamily:JB, fontSize:9, letterSpacing:'0.04em', color:TXM, lineHeight:1.6 }}>
+                    Lock {sym} as proof of commitment. Returned when buyer confirms receipt.
+                    Paid to buyer if they win a dispute.
                   </p>
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { label: 'None',    mode: 'none'   as const, hint: 'No collateral' },
-                  { label: '10%',     mode: 'pct10'  as const, hint: 'Good for NFTs'  },
-                  { label: '25%',     mode: 'pct25'  as const, hint: 'High-value WL'  },
-                  { label: 'Custom',  mode: 'custom' as const, hint: 'Set manually'   },
-                ].map(opt => (
-                  <button
-                    key={opt.mode}
-                    type="button"
-                    onClick={() => {
-                      if (opt.mode === 'none')   { setCollateralMode('none');   setForm(f => ({ ...f, collateralEth: '0' })) }
-                      if (opt.mode === 'pct10')  { setCollateralMode('pct');    setForm(f => ({ ...f, collateralEth: '0.1' })) }
-                      if (opt.mode === 'pct25')  { setCollateralMode('pct');    setForm(f => ({ ...f, collateralEth: '0.25' })) }
-                      if (opt.mode === 'custom') { setCollateralMode('custom') }
-                    }}
-                    className={[
-                      'p-2 rounded-lg border text-xs text-left transition-colors',
-                      (opt.mode === 'none'   && collateralMode === 'none') ||
-                      (opt.mode === 'pct10'  && collateralMode === 'pct' && form.collateralEth === '0.1') ||
-                      (opt.mode === 'pct25'  && collateralMode === 'pct' && form.collateralEth === '0.25') ||
-                      (opt.mode === 'custom' && collateralMode === 'custom')
-                        ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
-                        : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600',
-                    ].join(' ')}
-                  >
-                    <div className="font-semibold">{opt.label}</div>
-                    <div className="text-slate-500 text-xs">{opt.hint}</div>
-                  </button>
-                ))}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+                {collateralPresets.map(opt => {
+                  const active = collateralMode === opt.key
+                  return (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => setCollateralMode(opt.key)}
+                      style={{
+                        padding:'0.625rem 0.75rem', textAlign:'left', cursor:'pointer',
+                        border:`1px solid ${active ? BD2 : BD}`,
+                        background: active ? 'rgba(46,87,255,0.1)' : BG3,
+                        transition:'all .18s',
+                      }}
+                    >
+                      <div style={{ fontFamily:JB, fontSize:10, fontWeight:700, letterSpacing:'0.1em', color: active ? ARC : TXL }}>{opt.label}</div>
+                      <div style={{ fontFamily:JB, fontSize:8.5, letterSpacing:'0.04em', color:TXM, marginTop:2 }}>{opt.hint}</div>
+                    </button>
+                  )
+                })}
               </div>
 
               {collateralMode === 'custom' && (
-                <div>
-                  <label className="label">Custom collateral (ETH)</label>
+                <div style={{ marginTop:10 }}>
+                  <label style={labelStyle}>CUSTOM COLLATERAL ({sym})</label>
                   <input
-                    className="input font-mono"
+                    style={{ ...inputStyle, fontFamily:JB }}
                     type="number" step="0.001" min="0"
                     placeholder="0.000"
                     value={customCollateral}
                     onChange={e => setCustomCollateral(e.target.value)}
+                    onFocus={e  => (e.currentTarget.style.borderColor = BD2)}
+                    onBlur={e   => (e.currentTarget.style.borderColor = BD)}
                   />
                 </div>
               )}
 
               {parseFloat(collateralEth) > 0 && (
-                <div className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-                  <Info size={12} />
-                  You will deposit <strong>{parseFloat(collateralEth).toFixed(6)} {sym}</strong> as collateral when creating this listing.
+                <div style={{ marginTop:10, display:'flex', alignItems:'center', gap:6, fontFamily:JB, fontSize:9, letterSpacing:'0.08em', color:ARC, background:'rgba(46,87,255,0.06)', border:`1px solid rgba(46,87,255,0.18)`, padding:'6px 10px' }}>
+                  <Info size={11} />
+                  You deposit <strong style={{ marginLeft:3 }}>{parseFloat(collateralEth).toFixed(6)} {sym}</strong>&nbsp;now as collateral.
                 </div>
               )}
             </div>
 
             {/* Price breakdown */}
             {price > 0 && (
-              <div className="p-3 bg-slate-900/60 border border-slate-700 rounded-lg text-sm space-y-1">
-                <div className="flex justify-between text-slate-400">
-                  <span>Buyer pays</span>
-                  <span className="font-mono text-white">{form.priceEth} {sym}</span>
-                </div>
-                <div className="flex justify-between text-slate-500 text-xs">
-                  <span>Platform fee (1%)</span>
-                  <span className="font-mono">-{(price * 0.01).toFixed(6)} {sym}</span>
-                </div>
-                <div className="flex justify-between text-emerald-400 font-semibold">
-                  <span>You receive</span>
-                  <span className="font-mono">{(price * 0.99).toFixed(6)} {sym}</span>
-                </div>
+              <div style={{ background:BG, border:`1px solid ${BD}`, padding:'0.875rem 1rem', display:'flex', flexDirection:'column', gap:8 }}>
+                <Row label="Buyer pays"      value={`${form.priceEth} ${sym}`}               color={TXL} />
+                <Row label="Platform fee 1%" value={`−${(price * 0.01).toFixed(6)} ${sym}`}  color={TXM} />
+                <div style={{ height:1, background:BD, margin:'2px 0' }} />
+                <Row label="You receive"     value={`${(price * 0.99).toFixed(6)} ${sym}`}   color={ARC} bold />
                 {parseFloat(collateralEth) > 0 && (
-                  <>
-                    <div className="border-t border-slate-700 pt-1 mt-1 flex justify-between text-amber-400 text-xs">
-                      <span>Your collateral deposit (refunded on success)</span>
-                      <span className="font-mono">{parseFloat(collateralEth).toFixed(6)} {sym}</span>
-                    </div>
-                    <div className="flex justify-between text-slate-500 text-xs">
-                      <span>Your total {sym} sent today</span>
-                      <span className="font-mono">{totalDeposit.toFixed(6)} {sym}</span>
-                    </div>
-                  </>
+                  <Row label="Your collateral (refunded on success)" value={`${parseFloat(collateralEth).toFixed(6)} ${sym}`} color='rgba(46,87,255,0.6)' />
                 )}
               </div>
             )}
 
+            {/* Error */}
             {error && (
-              <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400">
-                <AlertCircle size={15} className="shrink-0 mt-0.5" />
-                <span>{error}</span>
+              <div style={{ display:'flex', alignItems:'flex-start', gap:8, padding:'0.75rem', background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', fontFamily:JB, fontSize:10, color:'#f87171', lineHeight:1.5 }}>
+                <AlertCircle size={13} style={{ flexShrink:0, marginTop:1 }} />
+                {error}
               </div>
             )}
 
+            {/* Submit */}
             <button
               onClick={handleSubmit}
               disabled={isPending || step === 'confirming'}
-              className="btn-primary w-full flex items-center justify-center gap-2"
+              style={{
+                width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                padding:'0.75rem', background: (isPending || step === 'confirming') ? 'rgba(46,87,255,0.5)' : ARC,
+                color:'#fff', border:'none', cursor: (isPending || step === 'confirming') ? 'not-allowed' : 'pointer',
+                fontFamily:JB, fontSize:11, fontWeight:700, letterSpacing:'0.14em',
+                transition:'background .18s',
+              }}
+              onMouseEnter={e => { if (!isPending && step !== 'confirming') (e.currentTarget as HTMLElement).style.background = '#4B6DFF' }}
+              onMouseLeave={e => { if (!isPending && step !== 'confirming') (e.currentTarget as HTMLElement).style.background = ARC }}
             >
               {isPending || step === 'confirming' ? (
-                <><Loader2 size={16} className="animate-spin" /> Confirm in wallet…</>
+                <><Loader2 size={14} style={{ animation:'spin 1s linear infinite' }} /> CONFIRM IN WALLET…</>
               ) : (
-                `Create Listing${totalDeposit > 0 ? ` + Deposit ${totalDeposit.toFixed(4)} ${sym}` : ''}`
+                `CREATE LISTING${parseFloat(collateralEth) > 0 ? ` + DEPOSIT ${parseFloat(collateralEth).toFixed(4)} ${sym}` : ''}`
               )}
             </button>
 
-            <p className="text-xs text-slate-600 text-center">
-              Buyers only move funds when they click "Buy". Collateral is locked immediately.
+            <p style={{ fontFamily:JB, fontSize:9, letterSpacing:'0.06em', color:'rgba(255,255,255,0.12)', textAlign:'center' }}>
+              Buyers fund the vault when they lock. Collateral is deposited immediately on creation.
             </p>
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function Row({ label, value, color, bold }: { label: string; value: string; color: string; bold?: boolean }) {
+  return (
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+      <span style={{ fontFamily:'var(--font-jb,monospace)', fontSize:9.5, letterSpacing:'0.06em', color:'#6B6B99' }}>{label}</span>
+      <span style={{ fontFamily:'var(--font-jb,monospace)', fontSize:10.5, letterSpacing:'0.06em', color, fontWeight: bold ? 700 : 400 }}>{value}</span>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useListingCount } from '@/hooks/useEscrowContract'
 import { CONTRACT_ADDRESS } from '@/lib/contract'
 import { WalletButton } from './WalletButton'
@@ -28,16 +29,7 @@ export function Navbar() {
         className="flex items-center gap-2 shrink-0 no-underline"
         style={{ textDecoration: 'none' }}
       >
-        <span
-          style={{
-            fontFamily: 'var(--font-bebas, sans-serif)',
-            fontSize: '1.375rem',
-            color: '#2E57FF',
-            lineHeight: 1,
-          }}
-        >
-          ⬡
-        </span>
+        <Image src="/logo.png" alt="Scrow" width={28} height={28} style={{ objectFit: 'contain' }} priority />
         <span
           style={{
             fontFamily: 'var(--font-bebas, sans-serif)',

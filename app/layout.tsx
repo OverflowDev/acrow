@@ -25,9 +25,9 @@ const jetbrains = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title:       'ARCROW — Trustless USDC Escrow on Arc Network',
+  title:       'Scrow — Trustless P2P Escrow on Arc Network',
   description: 'Lock it. Ship it. Collect. Trustless P2P escrow powered by USDC on Arc — sub-second finality, no middlemen.',
-  icons:       { icon: '/favicon.ico' },
+  icons:       { icon: '/logo.png' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

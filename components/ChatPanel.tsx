@@ -1,10 +1,39 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useAccount } from 'wagmi'
-import { Send, MessageSquare, WifiOff } from 'lucide-react'
-import { fetchMessages, sendMessage, subscribeToMessages } from '@/lib/supabase'
+import { useAccount, useSignMessage } from 'wagmi'
+import { Send, MessageSquare, Lock, Loader2 } from 'lucide-react'
 import type { Message } from '@/types'
+
+const BG   = '#05080F'
+const BG2  = '#08101E'
+const BG3  = '#0C1525'
+const ARC  = '#2E57FF'
+const BD   = 'rgba(255,255,255,0.07)'
+const TXL  = '#EDE9F8'
+const TXM  = '#6B6B99'
+const JB   = 'var(--font-jb,monospace)'
+
+const POLL_MS      = 4_000
+const AUTH_TTL_MS  = 4 * 60 * 1000 // 4 min client cache (server accepts 5 min)
+
+interface Auth { address: string; signature: string; timestamp: number }
+
+function sessionKey(escrowId: string) { return `chat_auth_${escrowId}` }
+
+function loadAuth(escrowId: string): Auth | null {
+  try {
+    const raw = sessionStorage.getItem(sessionKey(escrowId))
+    if (!raw) return null
+    const auth: Auth = JSON.parse(raw)
+    if (Date.now() - auth.timestamp * 1000 > AUTH_TTL_MS) return null
+    return auth
+  } catch { return null }
+}
+
+function saveAuth(escrowId: string, auth: Auth) {
+  try { sessionStorage.setItem(sessionKey(escrowId), JSON.stringify(auth)) } catch {}
+}
 
 interface ChatPanelProps {
   escrowId: string
@@ -13,110 +42,171 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({ escrowId, seller, buyer }: ChatPanelProps) {
-  const { address } = useAccount()
-  const [messages,    setMessages]    = useState<Message[]>([])
-  const [input,       setInput]       = useState('')
-  const [sending,     setSending]     = useState(false)
-  const [connected,   setConnected]   = useState(false)
-  const [noSupabase,  setNoSupabase]  = useState(false)
+  const { address }          = useAccount()
+  const { signMessageAsync } = useSignMessage()
+
+  const [auth,      setAuth]      = useState<Auth | null>(null)
+  const [messages,  setMessages]  = useState<Message[]>([])
+  const [input,     setInput]     = useState('')
+  const [sending,   setSending]   = useState(false)
+  const [unlocking, setUnlocking] = useState(false)
+  const [error,     setError]     = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const isParty = address &&
-    (address.toLowerCase() === seller.toLowerCase() ||
-     address.toLowerCase() === buyer.toLowerCase())
-
-  // Load history + subscribe
+  // Restore cached auth on mount
   useEffect(() => {
-    let unsub = () => {}
+    const cached = loadAuth(escrowId)
+    if (cached && cached.address === address?.toLowerCase()) setAuth(cached)
+  }, [escrowId, address])
 
-    fetchMessages(escrowId).then(msgs => {
-      if (msgs === null) { setNoSupabase(true); return }
-      setMessages(msgs)
-      setConnected(true)
+  // Auth headers helper
+  const headers = useCallback((a: Auth) => ({
+    'Content-Type':    'application/json',
+    'x-wallet-address': a.address,
+    'x-signature':      a.signature,
+    'x-timestamp':      String(a.timestamp),
+  }), [])
 
-      const sub = subscribeToMessages(escrowId, (msg) => {
-        setMessages(prev => {
-          // dedupe by id
-          if (prev.some(m => m.id === msg.id)) return prev
-          return [...prev, msg]
-        })
-      })
-      unsub = sub.unsubscribe
-    })
+  // Fetch messages
+  const fetchMsgs = useCallback(async (a: Auth) => {
+    try {
+      const res = await fetch(`/api/messages/${escrowId}`, { headers: headers(a) })
+      if (!res.ok) { if (res.status === 403) setAuth(null); return }
+      const data: Message[] = await res.json()
+      setMessages(data)
+    } catch {}
+  }, [escrowId, headers])
 
-    return () => unsub()
-  }, [escrowId])
+  // Poll while authed
+  useEffect(() => {
+    if (!auth) return
+    fetchMsgs(auth)
+    const id = setInterval(() => fetchMsgs(auth), POLL_MS)
+    return () => clearInterval(id)
+  }, [auth, fetchMsgs])
 
-  // Scroll to bottom on new message
+  // Scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const handleSend = useCallback(async () => {
-    if (!input.trim() || !address || sending) return
+  const unlock = async () => {
+    if (!address) return
+    setUnlocking(true)
+    setError(null)
+    try {
+      const timestamp = Math.floor(Date.now() / 1000)
+      const message   = `scrow:chat:${escrowId}:${timestamp}`
+      const signature = await signMessageAsync({ message })
+      const a: Auth   = { address: address.toLowerCase(), signature, timestamp }
+      saveAuth(escrowId, a)
+      setAuth(a)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : ''
+      setError(msg.includes('rejected') ? 'Signature rejected.' : 'Could not sign.')
+    } finally {
+      setUnlocking(false)
+    }
+  }
+
+  const handleSend = async () => {
+    if (!input.trim() || !auth || sending) return
     setSending(true)
     try {
-      await sendMessage(escrowId, address, input.trim())
+      const res = await fetch(`/api/messages/${escrowId}`, {
+        method:  'POST',
+        headers: headers(auth),
+        body:    JSON.stringify({ content: input.trim() }),
+      })
+      if (!res.ok) throw new Error('Send failed')
       setInput('')
+      await fetchMsgs(auth)
     } catch {
-      // message will appear via realtime subscription
+      setError('Failed to send message.')
     } finally {
       setSending(false)
     }
-  }, [input, address, escrowId, sending])
+  }
 
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
 
-  if (noSupabase) {
+  const isSeller = (a: string) => a.toLowerCase() === seller.toLowerCase()
+
+  // ── Locked / unauthenticated state ──────────────────────────────────────────
+  if (!auth) {
     return (
-      <div className="border border-slate-700 rounded-xl p-4 text-center text-xs text-slate-600 space-y-1">
-        <WifiOff size={18} className="mx-auto text-slate-700" />
-        <p>Chat requires Supabase.</p>
-        <p>Add <code className="bg-slate-800 px-1 rounded">NEXT_PUBLIC_SUPABASE_URL</code> to .env.local</p>
+      <div style={{ border: `1px solid ${BD}`, background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '2rem 1.25rem', height: 240 }}>
+        <div style={{ width: 44, height: 44, border: `1px solid rgba(46,87,255,0.25)`, background: 'rgba(46,87,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Lock size={18} style={{ color: ARC }} />
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontFamily: JB, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', color: TXL, marginBottom: 4 }}>CHAT IS ENCRYPTED</p>
+          <p style={{ fontFamily: JB, fontSize: 9, letterSpacing: '0.06em', color: TXM, lineHeight: 1.6 }}>
+            Sign to prove wallet ownership.<br />Only buyer &amp; seller can read this chat.
+          </p>
+        </div>
+        {error && (
+          <p style={{ fontFamily: JB, fontSize: 9, color: '#f87171', letterSpacing: '0.06em' }}>{error}</p>
+        )}
+        <button
+          onClick={unlock}
+          disabled={unlocking}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '0.5rem 1.5rem', background: unlocking ? 'rgba(46,87,255,0.5)' : ARC,
+            border: 'none', cursor: unlocking ? 'not-allowed' : 'pointer',
+            color: '#fff', fontFamily: JB, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+          }}
+        >
+          {unlocking
+            ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> SIGNING…</>
+            : <><MessageSquare size={13} /> UNLOCK CHAT</>
+          }
+        </button>
       </div>
     )
   }
 
+  // ── Authenticated chat ───────────────────────────────────────────────────────
   return (
-    <div className="border border-slate-700 rounded-xl overflow-hidden flex flex-col" style={{ height: 340 }}>
+    <div style={{ border: `1px solid ${BD}`, display: 'flex', flexDirection: 'column', height: 360, background: BG }}>
+
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-800/80 border-b border-slate-700 shrink-0">
-        <MessageSquare size={14} className="text-emerald-400" />
-        <span className="text-xs font-semibold text-slate-300">Negotiation Chat</span>
-        {connected && (
-          <span className="ml-auto flex items-center gap-1 text-xs text-emerald-400">
-            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-            Live
-          </span>
-        )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.625rem 0.875rem', borderBottom: `1px solid ${BD}`, background: BG2, flexShrink: 0 }}>
+        <MessageSquare size={13} style={{ color: ARC }} />
+        <span style={{ fontFamily: JB, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.14em', color: TXL }}>PRIVATE CHAT</span>
+        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, fontFamily: JB, fontSize: 9, letterSpacing: '0.1em', color: ARC }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: ARC }} />
+          SECURED
+        </span>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-900/40">
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {messages.length === 0 && (
-          <p className="text-center text-xs text-slate-600 py-6">
-            No messages yet. Start the negotiation.
+          <p style={{ textAlign: 'center', fontFamily: JB, fontSize: 9.5, letterSpacing: '0.1em', color: TXM, paddingTop: '1.5rem' }}>
+            NO MESSAGES YET — START NEGOTIATION
           </p>
         )}
         {messages.map(msg => {
-          const isMe = address?.toLowerCase() === msg.sender_address.toLowerCase()
-          const isSeller = msg.sender_address.toLowerCase() === seller.toLowerCase()
-          const label = isMe ? 'You' : isSeller ? 'Seller' : 'Buyer'
-
+          const isMe    = address?.toLowerCase() === msg.sender_address.toLowerCase()
+          const label   = isMe ? 'YOU' : isSeller(msg.sender_address) ? 'SELLER' : 'BUYER'
           return (
-            <div key={msg.id} className={`flex flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
-              <span className="text-xs text-slate-600 px-1">{label}</span>
-              <div className={[
-                'max-w-[80%] px-3 py-2 rounded-2xl text-sm break-words',
-                isMe
-                  ? 'bg-emerald-600/80 text-white rounded-br-sm'
-                  : 'bg-slate-700 text-slate-100 rounded-bl-sm',
-              ].join(' ')}>
+            <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', gap: 3 }}>
+              <span style={{ fontFamily: JB, fontSize: 8, letterSpacing: '0.14em', color: TXM, paddingInline: 4 }}>{label}</span>
+              <div style={{
+                maxWidth: '78%', padding: '0.4rem 0.7rem',
+                fontFamily: JB, fontSize: 11, letterSpacing: '0.03em', lineHeight: 1.5,
+                wordBreak: 'break-word',
+                background: isMe ? 'rgba(46,87,255,0.18)' : BG3,
+                border: `1px solid ${isMe ? 'rgba(46,87,255,0.35)' : BD}`,
+                color: isMe ? '#A8BFFF' : TXL,
+              }}>
                 {msg.content}
               </div>
-              <span className="text-xs text-slate-700 px-1">
+              <span style={{ fontFamily: JB, fontSize: 8, color: 'rgba(107,107,153,0.4)', paddingInline: 4 }}>
                 {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
@@ -125,31 +215,45 @@ export function ChatPanel({ escrowId, seller, buyer }: ChatPanelProps) {
         <div ref={bottomRef} />
       </div>
 
+      {/* Error */}
+      {error && (
+        <div style={{ padding: '0.4rem 0.875rem', background: 'rgba(239,68,68,0.08)', borderTop: '1px solid rgba(239,68,68,0.15)', fontFamily: JB, fontSize: 9, color: '#f87171', letterSpacing: '0.06em' }}>
+          {error}
+        </div>
+      )}
+
       {/* Input */}
-      <div className="shrink-0 border-t border-slate-700 p-2 flex gap-2 bg-slate-800/60">
-        {isParty ? (
-          <>
-            <input
-              className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-              placeholder="Type a message…"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={onKey}
-              maxLength={1000}
-            />
-            <button
-              onClick={handleSend}
-              disabled={!input.trim() || sending}
-              className="p-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 rounded-lg text-white transition-colors shrink-0"
-            >
-              <Send size={15} />
-            </button>
-          </>
-        ) : (
-          <p className="w-full text-center text-xs text-slate-600 py-2">
-            Only the buyer and seller can chat
-          </p>
-        )}
+      <div style={{ flexShrink: 0, borderTop: `1px solid ${BD}`, padding: '0.625rem', display: 'flex', gap: 6, background: BG2 }}>
+        <input
+          style={{
+            flex: 1, background: BG3, border: `1px solid ${BD}`, color: TXL,
+            fontFamily: JB, fontSize: 11, letterSpacing: '0.04em',
+            padding: '0.4rem 0.65rem', outline: 'none',
+          }}
+          placeholder="Type a message…"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={onKey}
+          onFocus={e  => (e.currentTarget.style.borderColor = 'rgba(46,87,255,0.4)')}
+          onBlur={e   => (e.currentTarget.style.borderColor = BD)}
+          maxLength={1000}
+          disabled={sending}
+        />
+        <button
+          onClick={handleSend}
+          disabled={!input.trim() || sending}
+          style={{
+            padding: '0.4rem 0.7rem', background: ARC, border: 'none',
+            cursor: (!input.trim() || sending) ? 'not-allowed' : 'pointer',
+            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            opacity: (!input.trim() || sending) ? 0.4 : 1,
+            transition: 'opacity .18s, background .18s', flexShrink: 0,
+          }}
+          onMouseEnter={e => { if (input.trim() && !sending) (e.currentTarget as HTMLElement).style.background = '#4B6DFF' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ARC }}
+        >
+          {sending ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={13} />}
+        </button>
       </div>
     </div>
   )

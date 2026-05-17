@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   ArrowRight, ArrowUpRight, Shield, Lock, CheckCircle,
   MessageSquare, Star, Scale, Package, Zap,
@@ -120,7 +121,7 @@ export default function LandingPage() {
           position:'sticky', top:0, zIndex:100,
         }}>
           <Link href="/" style={{ display:'flex', alignItems:'center', gap:'0.5rem', textDecoration:'none', flexShrink:0 }}>
-            <span style={{ fontSize:'1.25rem', color:ARC, fontFamily:BB }}>⬡</span>
+            <Image src="/logo.png" alt="Scrow" width={28} height={28} style={{ objectFit:'contain' }} priority />
             <span style={{ fontFamily:BB, fontSize:'1.25rem', letterSpacing:'0.12em', color:TXL }}>Scrow</span>
           </Link>
           {!mob && (
