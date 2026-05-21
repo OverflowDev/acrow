@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { formatEther }                  from 'viem'
 import { useAccount }                   from 'wagmi'
-import { Plus, Search, RefreshCw, ArrowLeft, TrendingUp, Lock, AlertTriangle } from 'lucide-react'
+import { Plus, Search, RefreshCw, ArrowLeft, TrendingUp, Lock, AlertTriangle, Shield } from 'lucide-react'
 import Link from 'next/link'
 
 import { Navbar }               from '@/components/Navbar'
@@ -164,9 +164,18 @@ export default function MarketplacePage() {
         {isArbitrator && <><Divider /><StatChip label="DISPUTED" value={disputedCount.toString()} color={disputedCount > 0 ? '#f87171' : TXM} /></>}
         <Divider />
         <StatChip label="VOLUME"   value={`${parseFloat(formatEther(totalVolume)).toFixed(2)} ${sym}`} color={TXL} />
+        {isArbitrator && (
+          <Link
+            href="/app/arbitrator"
+            style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:5, fontFamily:JB, fontSize:9, fontWeight:700, letterSpacing:'0.14em', color: disputedCount > 0 ? '#f87171' : TXM, textDecoration:'none', border:`1px solid ${disputedCount > 0 ? 'rgba(239,68,68,0.3)' : BD}`, background: disputedCount > 0 ? 'rgba(239,68,68,0.06)' : 'transparent', padding:'3px 10px', transition:'color .2s', flexShrink:0 }}
+          >
+            <Shield size={9} />
+            ARBITRATOR{disputedCount > 0 ? ` · ${disputedCount}` : ''}
+          </Link>
+        )}
         <Link
           href="/"
-          style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:4, fontFamily:JB, fontSize:9, letterSpacing:'0.16em', color:TXM, textDecoration:'none', transition:'color .2s', flexShrink:0 }}
+          style={{ marginLeft: isArbitrator ? '0.5rem' : 'auto', display:'flex', alignItems:'center', gap:4, fontFamily:JB, fontSize:9, letterSpacing:'0.16em', color:TXM, textDecoration:'none', transition:'color .2s', flexShrink:0 }}
           onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = TXL}
           onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = TXM}
         >
