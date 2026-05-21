@@ -216,7 +216,7 @@ export default function MarketplacePage() {
 
           {/* Filters */}
           <div style={{ padding:'0.625rem 0.75rem', borderBottom:`1px solid ${BD}`, display:'flex', gap:6, alignItems:'center', flexShrink:0, flexWrap:'wrap' }}>
-            {(['all','open','locked','completed', ...(isArbitrator ? ['disputed'] : [])] as const).map((f) => {
+            {(['all','open','locked','completed', ...(isArbitrator ? ['disputed'] : [])] as Array<'all' | 'open' | 'locked' | 'completed' | 'disputed'>).map((f) => {
               const isDisputed = f === 'disputed'
               const active     = statusFilter === f
               return (
