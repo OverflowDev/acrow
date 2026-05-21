@@ -38,7 +38,8 @@ export default function MarketplacePage() {
 
   const [tab, setTab]                   = useState<'market' | 'mine'>('market')
   const [search, setSearch]             = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'locked'>('open')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'locked' | 'completed'>('open')
+  const [refreshing, setRefreshing]     = useState(false)
   const [selectedId, setSelectedId]     = useState<bigint | null>(null)
   const [showDetail, setShowDetail]     = useState(false)
   const [showCreate, setShowCreate]     = useState(false)
@@ -76,19 +77,25 @@ export default function MarketplacePage() {
     }
   }, [onChainListings, selectedId])
 
-  const refresh = () => { refetchCount(); refetchListings() }
+  const refresh = async () => {
+    setRefreshing(true)
+    await Promise.all([refetchCount(), refetchListings()])
+    setRefreshing(false)
+  }
 
   const displayed = useMemo(() => {
     let list = onChainListings
-    if (tab === 'mine' && address) {
+    if (tab === 'mine') {
+      if (!address) return []
       list = list.filter(
         (l) =>
           l.seller.toLowerCase() === address.toLowerCase() ||
           l.buyer.toLowerCase()  === address.toLowerCase(),
       )
     }
-    if (statusFilter === 'open')   list = list.filter((l) => l.status === ListingStatus.OPEN)
-    if (statusFilter === 'locked') list = list.filter((l) => l.status === ListingStatus.LOCKED)
+    if (statusFilter === 'open')      list = list.filter((l) => l.status === ListingStatus.OPEN)
+    if (statusFilter === 'locked')    list = list.filter((l) => l.status === ListingStatus.LOCKED)
+    if (statusFilter === 'completed') list = list.filter((l) => l.status === ListingStatus.COMPLETED)
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(
@@ -127,14 +134,14 @@ export default function MarketplacePage() {
       )}
 
       {/* ── Stats bar */}
-      <div style={{ display:'flex', alignItems:'center', padding:'0 1.25rem', borderBottom:`1px solid ${BD}`, background:BG, height:36, flexShrink:0, overflow:'hidden', gap:0 }}>
-        <StatChip label="TOTAL" value={count?.toString() ?? '—'} />
+      <div style={{ display:'flex', alignItems:'center', padding:'0 1rem', borderBottom:`1px solid ${BD}`, background:BG, height:36, flexShrink:0, overflow:'hidden', gap:0 }}>
+        <StatChip label="TOTAL"  value={count?.toString() ?? '—'} color={TXL} />
         <Divider />
-        <StatChip label="OPEN" value={openCount.toString()} color={ARC} />
+        <StatChip label="OPEN"   value={openCount.toString()} color={ARC} />
         <Divider />
-        <StatChip label="LOCKED" value={lockedCount.toString()} color={TXD} />
+        <StatChip label="LOCKED" value={lockedCount.toString()} color={'rgba(123,164,248,0.7)'} />
         <Divider />
-        <StatChip label="VOLUME" value={`${parseFloat(formatEther(totalVolume)).toFixed(2)} ${sym}`} />
+        <StatChip label="VOLUME" value={`${parseFloat(formatEther(totalVolume)).toFixed(2)} ${sym}`} color={TXL} />
         <Link
           href="/"
           style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:4, fontFamily:JB, fontSize:9, letterSpacing:'0.16em', color:TXM, textDecoration:'none', transition:'color .2s', flexShrink:0 }}
@@ -153,8 +160,8 @@ export default function MarketplacePage() {
 
           {/* Tabs */}
           <div style={{ display:'flex', borderBottom:`1px solid ${BD}`, flexShrink:0 }}>
-            <TabBtn active={tab === 'market'} onClick={() => setTab('market')} icon={<TrendingUp size={11} />}>MARKETPLACE</TabBtn>
-            <TabBtn active={tab === 'mine'}   onClick={() => setTab('mine')}   icon={<Lock size={11} />}>MY ESCROWS</TabBtn>
+            <TabBtn active={tab === 'market'} onClick={() => { setTab('market') }} icon={<TrendingUp size={11} />}>MARKETPLACE</TabBtn>
+            <TabBtn active={tab === 'mine'}   onClick={() => { setTab('mine'); setStatusFilter('all') }} icon={<Lock size={11} />}>MY ESCROWS</TabBtn>
           </div>
 
           {/* Search */}
@@ -177,8 +184,8 @@ export default function MarketplacePage() {
           </div>
 
           {/* Filters */}
-          <div style={{ padding:'0.625rem 0.75rem', borderBottom:`1px solid ${BD}`, display:'flex', gap:6, alignItems:'center', flexShrink:0 }}>
-            {(['all','open','locked'] as const).map((f) => (
+          <div style={{ padding:'0.625rem 0.75rem', borderBottom:`1px solid ${BD}`, display:'flex', gap:6, alignItems:'center', flexShrink:0, flexWrap:'wrap' }}>
+            {(['all','open','locked','completed'] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setStatusFilter(f)}
@@ -196,11 +203,11 @@ export default function MarketplacePage() {
             <button
               onClick={refresh}
               title="Refresh"
-              style={{ marginLeft:'auto', background:'transparent', border:'none', cursor:'pointer', color:TXM, display:'flex', alignItems:'center', padding:4, transition:'color .2s' }}
+              style={{ marginLeft:'auto', background:'transparent', border:'none', cursor:'pointer', color: refreshing ? ARC : TXM, display:'flex', alignItems:'center', padding:4, transition:'color .2s' }}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = ARC}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = TXM}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = refreshing ? ARC : TXM}
             >
-              <RefreshCw size={13} />
+              <RefreshCw size={13} style={{ animation: refreshing ? 'spin 0.7s linear infinite' : 'none' }} />
             </button>
           </div>
 
@@ -238,7 +245,7 @@ export default function MarketplacePage() {
           {/* Listing cards */}
           <div style={{ flex:1, overflowY:'auto' }}>
             {displayed.length === 0 ? (
-              <EmptyList tab={tab} hasCount={!!count && count > 0n} />
+              <EmptyList tab={tab} hasCount={!!count && count > 0n} connected={!!address} />
             ) : (
               displayed.map((l) => (
                 <OrderCard
@@ -296,11 +303,10 @@ function TabBtn({ active, onClick, children, icon }: { active: boolean; onClick:
         flex:1, padding:'0.75rem 0.5rem',
         display:'flex', alignItems:'center', justifyContent:'center', gap:6,
         fontFamily:JB, fontSize:9.5, letterSpacing:'0.14em',
+        borderTop:'none', borderLeft:'none', borderRight:'none',
         borderBottom:`2px solid ${active ? ARC : 'transparent'}`,
         color: active ? ARC : TXM,
-        background:'transparent', border:'none', cursor:'pointer',
-        borderBottomStyle:'solid', borderBottomWidth:2,
-        borderBottomColor: active ? ARC : 'transparent',
+        background:'transparent', cursor:'pointer',
         transition:'color .2s, border-color .2s',
       }}
     >
@@ -322,17 +328,14 @@ function Divider() {
   return <div style={{ width:1, height:12, background:BD, flexShrink:0 }} />
 }
 
-function EmptyList({ tab, hasCount }: { tab: string; hasCount: boolean }) {
+function EmptyList({ tab, hasCount, connected }: { tab: string; hasCount: boolean; connected: boolean }) {
+  let msg = 'VAULT IS EMPTY — CREATE A LISTING'
+  if (tab === 'mine') msg = connected ? 'NO ESCROWS FOR YOUR WALLET' : 'CONNECT WALLET TO VIEW YOUR ESCROWS'
+  else if (hasCount)  msg = 'NO LISTINGS MATCH FILTER'
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:200, gap:12 }}>
       <span style={{ fontFamily:BB, fontSize:'3rem', color:'rgba(46,87,255,0.08)', lineHeight:1 }}>⬡</span>
-      <p style={{ fontFamily:JB, fontSize:9.5, letterSpacing:'0.14em', color:TXM, textAlign:'center' }}>
-        {tab === 'mine'
-          ? 'NO ESCROWS FOR YOUR WALLET'
-          : hasCount
-            ? 'NO LISTINGS MATCH FILTER'
-            : 'VAULT IS EMPTY — CREATE A LISTING'}
-      </p>
+      <p style={{ fontFamily:JB, fontSize:9.5, letterSpacing:'0.14em', color:TXM, textAlign:'center', padding:'0 1rem' }}>{msg}</p>
     </div>
   )
 }
