@@ -3,14 +3,14 @@
 import { useState, useMemo, useEffect } from 'react'
 import { formatEther }                  from 'viem'
 import { useAccount }                   from 'wagmi'
-import { Plus, Search, RefreshCw, ArrowLeft, TrendingUp, Lock, Circle } from 'lucide-react'
+import { Plus, Search, RefreshCw, ArrowLeft, TrendingUp, Lock, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 
 import { Navbar }               from '@/components/Navbar'
 import { OrderCard }            from '@/components/OrderCard'
 import { TransactionDetail }    from '@/components/TransactionDetail'
 import { CreateListingModal }   from '@/components/CreateListingModal'
-import { useListingCount, useListings } from '@/hooks/useEscrowContract'
+import { useListingCount, useListings, useArbitrator } from '@/hooks/useEscrowContract'
 import { fetchAllListingMeta }  from '@/lib/supabase'
 import { IS_CONTRACT_DEPLOYED } from '@/lib/contract'
 import { ListingStatus }        from '@/types'
@@ -35,10 +35,13 @@ const BB   = 'var(--font-bebas,sans-serif)'
 export default function MarketplacePage() {
   const { address } = useAccount()
   const sym = useNativeSymbol()
+  const { data: arbitratorAddress } = useArbitrator()
+  const isArbitrator = !!address && !!arbitratorAddress &&
+    address.toLowerCase() === (arbitratorAddress as string).toLowerCase()
 
   const [tab, setTab]                   = useState<'market' | 'mine'>('market')
   const [search, setSearch]             = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'locked' | 'completed'>('open')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'locked' | 'completed' | 'disputed'>('open')
   const [refreshing, setRefreshing]     = useState(false)
   const [selectedId, setSelectedId]     = useState<bigint | null>(null)
   const [showDetail, setShowDetail]     = useState(false)
@@ -96,6 +99,7 @@ export default function MarketplacePage() {
     if (statusFilter === 'open')      list = list.filter((l) => l.status === ListingStatus.OPEN)
     if (statusFilter === 'locked')    list = list.filter((l) => l.status === ListingStatus.LOCKED)
     if (statusFilter === 'completed') list = list.filter((l) => l.status === ListingStatus.COMPLETED)
+    if (statusFilter === 'disputed')  list = list.filter((l) => l.status === ListingStatus.DISPUTED)
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(
@@ -110,9 +114,10 @@ export default function MarketplacePage() {
 
   const selectedListing = onChainListings.find((l) => l.id === selectedId) ?? null
 
-  const openCount   = onChainListings.filter((l) => l.status === ListingStatus.OPEN).length
-  const lockedCount = onChainListings.filter((l) => l.status === ListingStatus.LOCKED).length
-  const totalVolume = onChainListings
+  const openCount     = onChainListings.filter((l) => l.status === ListingStatus.OPEN).length
+  const lockedCount   = onChainListings.filter((l) => l.status === ListingStatus.LOCKED).length
+  const disputedCount = onChainListings.filter((l) => l.status === ListingStatus.DISPUTED).length
+  const totalVolume   = onChainListings
     .filter((l) => l.status === ListingStatus.COMPLETED)
     .reduce((acc, l) => acc + l.price, 0n)
 
@@ -133,15 +138,32 @@ export default function MarketplacePage() {
         </div>
       )}
 
+      {/* ── Arbitrator alert banner */}
+      {isArbitrator && disputedCount > 0 && (
+        <div
+          onClick={() => setStatusFilter('disputed')}
+          style={{ padding:'0.5rem 1rem', borderBottom:`1px solid rgba(239,68,68,0.25)`, background:'rgba(239,68,68,0.07)', display:'flex', alignItems:'center', gap:'0.5rem', flexShrink:0, cursor:'pointer' }}
+        >
+          <AlertTriangle size={12} style={{ color:'#f87171', flexShrink:0 }} />
+          <span style={{ fontFamily:JB, fontSize:9.5, fontWeight:700, letterSpacing:'0.16em', color:'#f87171' }}>
+            {disputedCount} DISPUTE{disputedCount !== 1 ? 'S' : ''} AWAITING RESOLUTION
+          </span>
+          <span style={{ fontFamily:JB, fontSize:9, color:'rgba(248,113,113,0.5)', letterSpacing:'0.08em', marginLeft:'auto' }}>
+            CLICK TO FILTER →
+          </span>
+        </div>
+      )}
+
       {/* ── Stats bar */}
       <div style={{ display:'flex', alignItems:'center', padding:'0 1rem', borderBottom:`1px solid ${BD}`, background:BG, height:36, flexShrink:0, overflow:'hidden', gap:0 }}>
-        <StatChip label="TOTAL"  value={count?.toString() ?? '—'} color={TXL} />
+        <StatChip label="TOTAL"    value={count?.toString() ?? '—'} color={TXL} />
         <Divider />
-        <StatChip label="OPEN"   value={openCount.toString()} color={ARC} />
+        <StatChip label="OPEN"     value={openCount.toString()} color={ARC} />
         <Divider />
-        <StatChip label="LOCKED" value={lockedCount.toString()} color={'rgba(123,164,248,0.7)'} />
+        <StatChip label="LOCKED"   value={lockedCount.toString()} color={'rgba(123,164,248,0.7)'} />
+        {isArbitrator && <><Divider /><StatChip label="DISPUTED" value={disputedCount.toString()} color={disputedCount > 0 ? '#f87171' : TXM} /></>}
         <Divider />
-        <StatChip label="VOLUME" value={`${parseFloat(formatEther(totalVolume)).toFixed(2)} ${sym}`} color={TXL} />
+        <StatChip label="VOLUME"   value={`${parseFloat(formatEther(totalVolume)).toFixed(2)} ${sym}`} color={TXL} />
         <Link
           href="/"
           style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:4, fontFamily:JB, fontSize:9, letterSpacing:'0.16em', color:TXM, textDecoration:'none', transition:'color .2s', flexShrink:0 }}
@@ -185,21 +207,25 @@ export default function MarketplacePage() {
 
           {/* Filters */}
           <div style={{ padding:'0.625rem 0.75rem', borderBottom:`1px solid ${BD}`, display:'flex', gap:6, alignItems:'center', flexShrink:0, flexWrap:'wrap' }}>
-            {(['all','open','locked','completed'] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setStatusFilter(f)}
-                style={{
-                  fontFamily:JB, fontSize:9, letterSpacing:'0.14em', padding:'4px 10px',
-                  border:`1px solid ${statusFilter === f ? BD2 : BD}`,
-                  background: statusFilter === f ? 'rgba(46,87,255,0.1)' : 'transparent',
-                  color: statusFilter === f ? ARC : TXM,
-                  cursor:'pointer', transition:'all .18s',
-                }}
-              >
-                {f.toUpperCase()}
-              </button>
-            ))}
+            {(['all','open','locked','completed', ...(isArbitrator ? ['disputed'] : [])] as const).map((f) => {
+              const isDisputed = f === 'disputed'
+              const active     = statusFilter === f
+              return (
+                <button
+                  key={f}
+                  onClick={() => setStatusFilter(f)}
+                  style={{
+                    fontFamily:JB, fontSize:9, letterSpacing:'0.14em', padding:'4px 10px',
+                    border:`1px solid ${active ? (isDisputed ? 'rgba(239,68,68,0.35)' : BD2) : BD}`,
+                    background: active ? (isDisputed ? 'rgba(239,68,68,0.12)' : 'rgba(46,87,255,0.1)') : 'transparent',
+                    color: active ? (isDisputed ? '#f87171' : ARC) : TXM,
+                    cursor:'pointer', transition:'all .18s',
+                  }}
+                >
+                  {f.toUpperCase()}
+                </button>
+              )
+            })}
             <button
               onClick={refresh}
               title="Refresh"

@@ -10,17 +10,26 @@ function buildClient() {
   return createPublicClient({ transport: http(rpcUrl) })
 }
 
-async function getParties(escrowId: string): Promise<{ seller: string; buyer: string } | null> {
+async function getParties(escrowId: string): Promise<{ seller: string; buyer: string; arbitrator: string } | null> {
   try {
-    const listing = await buildClient().readContract({
-      address: CONTRACT_ADDRESS,
-      abi:     ESCROW_ABI,
-      functionName: 'getListing',
-      args:    [BigInt(escrowId)],
-    }) as { seller: string; buyer: string }
+    const client = buildClient()
+    const [listing, arbitrator] = await Promise.all([
+      client.readContract({
+        address:      CONTRACT_ADDRESS,
+        abi:          ESCROW_ABI,
+        functionName: 'getListing',
+        args:         [BigInt(escrowId)],
+      }) as Promise<{ seller: string; buyer: string }>,
+      client.readContract({
+        address:      CONTRACT_ADDRESS,
+        abi:          ESCROW_ABI,
+        functionName: 'arbitrator',
+      }) as Promise<string>,
+    ])
     return {
-      seller: listing.seller.toLowerCase(),
-      buyer:  listing.buyer.toLowerCase(),
+      seller:     listing.seller.toLowerCase(),
+      buyer:      listing.buyer.toLowerCase(),
+      arbitrator: arbitrator.toLowerCase(),
     }
   } catch {
     return null
@@ -48,7 +57,7 @@ async function authorize(
   if (!parties) return false
 
   const addr = address.toLowerCase()
-  return addr === parties.seller || addr === parties.buyer
+  return addr === parties.seller || addr === parties.buyer || addr === parties.arbitrator
 }
 
 function getAuthHeaders(req: NextRequest) {

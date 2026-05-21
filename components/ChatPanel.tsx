@@ -36,12 +36,13 @@ function saveAuth(escrowId: string, auth: Auth) {
 }
 
 interface ChatPanelProps {
-  escrowId: string
-  seller:   string
-  buyer:    string
+  escrowId:   string
+  seller:     string
+  buyer:      string
+  arbitrator?: string
 }
 
-export function ChatPanel({ escrowId, seller, buyer }: ChatPanelProps) {
+export function ChatPanel({ escrowId, seller, buyer, arbitrator }: ChatPanelProps) {
   const { address }          = useAccount()
   const { signMessageAsync } = useSignMessage()
 
@@ -132,7 +133,13 @@ export function ChatPanel({ escrowId, seller, buyer }: ChatPanelProps) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
 
-  const isSeller = (a: string) => a.toLowerCase() === seller.toLowerCase()
+  const senderLabel = (addr: string) => {
+    const a = addr.toLowerCase()
+    if (a === seller.toLowerCase())                    return 'SELLER'
+    if (a === buyer.toLowerCase())                     return 'BUYER'
+    if (arbitrator && a === arbitrator.toLowerCase())  return 'ARBITRATOR'
+    return `${addr.slice(0, 6)}…${addr.slice(-4)}`
+  }
 
   // ── Locked / unauthenticated state ──────────────────────────────────────────
   if (!auth) {
@@ -144,7 +151,8 @@ export function ChatPanel({ escrowId, seller, buyer }: ChatPanelProps) {
         <div style={{ textAlign: 'center' }}>
           <p style={{ fontFamily: JB, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.12em', color: TXL, marginBottom: 4 }}>CHAT IS ENCRYPTED</p>
           <p style={{ fontFamily: JB, fontSize: 9, letterSpacing: '0.06em', color: TXM, lineHeight: 1.6 }}>
-            Sign to prove wallet ownership.<br />Only buyer &amp; seller can read this chat.
+            Sign to prove wallet ownership.<br />
+            {arbitrator ? 'Buyer, seller & arbitrator can read this chat.' : 'Only buyer & seller can read this chat.'}
           </p>
         </div>
         {error && (
@@ -187,22 +195,25 @@ export function ChatPanel({ escrowId, seller, buyer }: ChatPanelProps) {
       <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {messages.length === 0 && (
           <p style={{ textAlign: 'center', fontFamily: JB, fontSize: 9.5, letterSpacing: '0.1em', color: TXM, paddingTop: '1.5rem' }}>
-            NO MESSAGES YET — START NEGOTIATION
+            {arbitrator ? 'NO MESSAGES YET' : 'NO MESSAGES YET — START NEGOTIATION'}
           </p>
         )}
         {messages.map(msg => {
-          const isMe    = address?.toLowerCase() === msg.sender_address.toLowerCase()
-          const label   = isMe ? 'YOU' : isSeller(msg.sender_address) ? 'SELLER' : 'BUYER'
+          const isMe         = address?.toLowerCase() === msg.sender_address.toLowerCase()
+          const isArb        = !!arbitrator && msg.sender_address.toLowerCase() === arbitrator.toLowerCase()
+          const label        = isMe ? 'YOU' : senderLabel(msg.sender_address)
+          const bubbleBg     = isMe ? 'rgba(46,87,255,0.18)' : isArb ? 'rgba(239,68,68,0.1)'  : BG3
+          const bubbleBorder = isMe ? 'rgba(46,87,255,0.35)'  : isArb ? 'rgba(239,68,68,0.3)'  : BD
+          const bubbleColor  = isMe ? '#A8BFFF'               : isArb ? '#fca5a5'               : TXL
+          const labelColor   = isArb && !isMe ? '#fca5a5' : TXM
           return (
             <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', gap: 3 }}>
-              <span style={{ fontFamily: JB, fontSize: 8, letterSpacing: '0.14em', color: TXM, paddingInline: 4 }}>{label}</span>
+              <span style={{ fontFamily: JB, fontSize: 8, letterSpacing: '0.14em', color: labelColor, paddingInline: 4 }}>{label}</span>
               <div style={{
                 maxWidth: '78%', padding: '0.4rem 0.7rem',
                 fontFamily: JB, fontSize: 11, letterSpacing: '0.03em', lineHeight: 1.5,
                 wordBreak: 'break-word',
-                background: isMe ? 'rgba(46,87,255,0.18)' : BG3,
-                border: `1px solid ${isMe ? 'rgba(46,87,255,0.35)' : BD}`,
-                color: isMe ? '#A8BFFF' : TXL,
+                background: bubbleBg, border: `1px solid ${bubbleBorder}`, color: bubbleColor,
               }}>
                 {msg.content}
               </div>

@@ -174,3 +174,34 @@ export function useCancelListing() {
 
   return { cancelListing, hash, isPending, receipt }
 }
+
+// ─── Write: resolve dispute (arbitrator only) ─────────────────────────────────
+
+export function useResolveDispute() {
+  const { writeContractAsync, data: hash, isPending } = useWriteContract()
+  const receipt = useWaitForTransactionReceipt({ hash })
+
+  const resolveDispute = useCallback(
+    async (listingId: bigint, favorBuyer: boolean) =>
+      writeContractAsync({
+        address:      CONTRACT_ADDRESS,
+        abi:          ESCROW_ABI,
+        functionName: 'resolveDispute',
+        args:         [listingId, favorBuyer],
+      }),
+    [writeContractAsync],
+  )
+
+  return { resolveDispute, hash, isPending, receipt }
+}
+
+// ─── Read: arbitrator address ─────────────────────────────────────────────────
+
+export function useArbitrator() {
+  return useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi:     ESCROW_ABI,
+    functionName: 'arbitrator',
+    query:   { enabled: IS_CONTRACT_DEPLOYED },
+  })
+}

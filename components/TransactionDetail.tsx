@@ -13,7 +13,7 @@ import { RatingModal }          from './RatingModal'
 import { ReputationBadge }      from './ReputationBadge'
 import {
   useDepositFunds, useConfirmDelivery, useConfirmReceipt,
-  useInitiateDispute, useCancelListing,
+  useInitiateDispute, useCancelListing, useResolveDispute, useArbitrator,
 } from '@/hooks/useEscrowContract'
 import { fetchMyRatingForEscrow } from '@/lib/supabase'
 import { ListingStatus }        from '@/types'
@@ -35,6 +35,11 @@ export function TransactionDetail({ listing, onRefresh }: TransactionDetailProps
   const { confirmReceipt,  isPending: confirming }  = useConfirmReceipt()
   const { initiateDispute, isPending: disputing }   = useInitiateDispute()
   const { cancelListing,   isPending: cancelling }  = useCancelListing()
+  const { resolveDispute,  isPending: resolving }   = useResolveDispute()
+  const { data: arbitratorAddress }                 = useArbitrator()
+
+  const isArbitrator = !!address && !!arbitratorAddress &&
+    address.toLowerCase() === (arbitratorAddress as string).toLowerCase()
 
   const [txHash,         setTxHash]         = useState<string | null>(null)
   const [error,          setError]          = useState<string | null>(null)
@@ -160,6 +165,7 @@ export function TransactionDetail({ listing, onRefresh }: TransactionDetailProps
           isSeller={isSeller}
           isBuyer={isBuyer}
           isConnected={!!address}
+          isArbitrator={isArbitrator}
           sellerConfirmed={listing.sellerConfirmed}
           buyerConfirmed={listing.buyerConfirmed}
           hasCollateral={!!collateralEth}
@@ -169,13 +175,16 @@ export function TransactionDetail({ listing, onRefresh }: TransactionDetailProps
           confirming={confirming}
           disputing={disputing}
           cancelling={cancelling}
-          onBuy={()          => exec(() => depositFunds(listing.id, listing.price))}
-          onDelivered={()    => exec(() => confirmDelivery(listing.id))}
-          onConfirm={()      => setConfirmDialog(true)}
+          resolving={resolving}
+          onBuy={()                  => exec(() => depositFunds(listing.id, listing.price))}
+          onDelivered={()            => exec(() => confirmDelivery(listing.id))}
+          onConfirm={()              => setConfirmDialog(true)}
           onConfirmFinal={() => { setConfirmDialog(false); exec(() => confirmReceipt(listing.id)) }}
-          onConfirmCancel={() => setConfirmDialog(false)}
-          onDispute={()      => exec(() => initiateDispute(listing.id))}
-          onCancel={()       => exec(() => cancelListing(listing.id))}
+          onConfirmCancel={()        => setConfirmDialog(false)}
+          onDispute={()              => exec(() => initiateDispute(listing.id))}
+          onCancel={()               => exec(() => cancelListing(listing.id))}
+          onResolveFavorBuyer={()    => exec(() => resolveDispute(listing.id, true))}
+          onResolveFavorSeller={()   => exec(() => resolveDispute(listing.id, false))}
         />
 
         {/* Tx hash */}
@@ -212,13 +221,16 @@ export function TransactionDetail({ listing, onRefresh }: TransactionDetailProps
         </div>
 
         {/* ─── Chat Panel ───────────────────────────────────────────────────── */}
-        {isParty && (status === ListingStatus.LOCKED || status === ListingStatus.DISPUTED || status === ListingStatus.COMPLETED) && (
+        {(isParty || isArbitrator) && (status === ListingStatus.LOCKED || status === ListingStatus.DISPUTED || status === ListingStatus.COMPLETED) && (
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Chat & Negotiation</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+              {isArbitrator && !isParty ? 'Dispute Chat — Buyer, Seller & Arbitrator' : 'Chat & Negotiation'}
+            </p>
             <ChatPanel
               escrowId={escrowId}
               seller={listing.seller}
               buyer={listing.buyer}
+              arbitrator={arbitratorAddress as string | undefined}
             />
           </div>
         )}
@@ -305,26 +317,30 @@ function TimeRow({ label, ts }: { label: string; ts: bigint }) {
 // ─── Action Panel ─────────────────────────────────────────────────────────────
 
 interface ActionPanelProps {
-  status:          ListingStatus
-  isSeller:        boolean
-  isBuyer:         boolean
-  isConnected:     boolean
-  sellerConfirmed: boolean
-  buyerConfirmed:  boolean
-  hasCollateral:   boolean
-  confirmDialog:   boolean
-  delivering:      boolean
-  depositing:      boolean
-  confirming:      boolean
-  disputing:       boolean
-  cancelling:      boolean
-  onBuy:           () => void
-  onDelivered:     () => void
-  onConfirm:       () => void
-  onConfirmFinal:  () => void
-  onConfirmCancel: () => void
-  onDispute:       () => void
-  onCancel:        () => void
+  status:               ListingStatus
+  isSeller:             boolean
+  isBuyer:              boolean
+  isConnected:          boolean
+  isArbitrator:         boolean
+  sellerConfirmed:      boolean
+  buyerConfirmed:       boolean
+  hasCollateral:        boolean
+  confirmDialog:        boolean
+  delivering:           boolean
+  depositing:           boolean
+  confirming:           boolean
+  disputing:            boolean
+  cancelling:           boolean
+  resolving:            boolean
+  onBuy:                () => void
+  onDelivered:          () => void
+  onConfirm:            () => void
+  onConfirmFinal:       () => void
+  onConfirmCancel:      () => void
+  onDispute:            () => void
+  onCancel:             () => void
+  onResolveFavorBuyer:  () => void
+  onResolveFavorSeller: () => void
 }
 
 function ActionPanel(p: ActionPanelProps) {
@@ -450,11 +466,50 @@ function ActionPanel(p: ActionPanelProps) {
   }
 
   if (p.status === ListingStatus.DISPUTED) {
+    if (p.isArbitrator) {
+      return (
+        <div className="space-y-3">
+          <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl space-y-1">
+            <div className="flex items-center gap-2">
+              <Shield size={15} className="text-red-400 shrink-0"/>
+              <p className="font-bold text-white text-sm">Arbitrator — Resolve Dispute</p>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Review the chat, evidence, and both parties&apos; claims, then issue a ruling.
+              This action is <strong className="text-white">final and cannot be undone</strong>.
+            </p>
+          </div>
+          <div className="p-3 bg-slate-900/60 border border-slate-700 rounded-xl space-y-2 text-xs text-slate-400">
+            <p><span className="text-emerald-400 font-semibold">Favor Buyer</span> — buyer gets full price refund + seller&apos;s collateral (seller failed to deliver)</p>
+            <p><span className="text-blue-400 font-semibold">Favor Seller</span> — seller gets price (minus 1% fee) + collateral back (buyer raised false dispute)</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={p.onResolveFavorBuyer}
+              disabled={p.resolving}
+              className="flex items-center justify-center gap-2 py-3 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold rounded-xl text-sm transition-colors disabled:opacity-50"
+            >
+              {p.resolving ? <Loader2 size={14} className="animate-spin"/> : <ShoppingBag size={14}/>}
+              Favor Buyer
+            </button>
+            <button
+              onClick={p.onResolveFavorSeller}
+              disabled={p.resolving}
+              className="flex items-center justify-center gap-2 py-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 font-bold rounded-xl text-sm transition-colors disabled:opacity-50"
+            >
+              {p.resolving ? <Loader2 size={14} className="animate-spin"/> : <User size={14}/>}
+              Favor Seller
+            </button>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-center space-y-1">
         <AlertTriangle size={22} className="text-red-400 mx-auto"/>
         <p className="font-bold text-white text-sm">Dispute In Progress</p>
-        <p className="text-xs text-slate-400">Funds frozen. Arbitrator reviewing.</p>
+        <p className="text-xs text-slate-400">Funds frozen. Arbitrator is reviewing — outcome will be posted here.</p>
       </div>
     )
   }
